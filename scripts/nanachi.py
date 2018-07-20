@@ -62,7 +62,15 @@ def model_blob(name: str):
 
 @app.route("/models/<name>")
 def model_summary(name: str):
-    return render_template('model_summary.html', name=name)
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
+        "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s",
+        (name,))
+    rows = cursor.fetchall()
+    cursor.close()
+    return render_template('model_summary.html', name=name, traces=rows)
 
 
 @app.route("/model_list")

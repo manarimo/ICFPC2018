@@ -7,4 +7,27 @@ Nanachi
 <div>
     <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
 </div>
+
+<h1>Trace List</h1>
+<div>
+    <table class="table">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Energy</th>
+        <th>Download</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for trace in traces %}
+    <tr>
+        <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
+        <td>{{ trace['energy'] }}</td>
+        <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
 {% endblock %}
