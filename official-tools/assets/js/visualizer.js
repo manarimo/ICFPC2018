@@ -784,8 +784,43 @@ function initVisualizer(config) {
             }
         }
     }
+
+    let dragging = false;
+    function onMouseDown(e) {
+        if (e.button === 0) {
+            dragging = true;
+        }
+    }
+
+    function onMouseUp(e) {
+        dragging = false;
+    }
+
+    function onMouseMove(e) {
+        if (dragging) {
+            if (Math.abs(e.movementX) > 10) {
+                if (e.movementX < 0) {
+                    objs.rotation.y -= Math.PI / 60;
+                } else {
+                    objs.rotation.y += Math.PI / 60;
+                }
+            }
+
+            if (Math.abs(e.movementY) > 10) {
+                if (e.movementY < 0) {
+                    objs.rotation.x -= Math.PI / 60;
+                } else {
+                    objs.rotation.x += Math.PI / 60;
+                }
+            }
+        }
+    }
+
     if (config.controls) {
         canvas.addEventListener("keypress", onKeyPress, false);
+        canvas.addEventListener("mousedown", onMouseDown, false);
+        canvas.addEventListener("mouseup", onMouseUp, false);
+        canvas.addEventListener("mousemove", onMouseMove, false);
     }
 
 

@@ -1,0 +1,13 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Trace {{ trace["id"] }}</h1>
+<div>
+    <a href="{{ url_for('model_summary', name=trace['name']) }}">Model</a>
+</div>
+<div>
+    <a href="{{ url_for('trace_blob', trace_id=trace['id']) }}">Download nbt file</a>
+</div>
+{% endblock %}
