@@ -28,7 +28,8 @@ def main():
     public_url = "http://{}.s3-website.ap-northeast-1.amazonaws.com/{}".format(S3_BUCKET, path)
     print("The uploaded file is avialable at: {}".format(public_url))
 
-    api.do_submit(public_url, digest)
+    response = api.do_submit(public_url, digest)
+    print(response)
 
 
 if __name__ == '__main__':
