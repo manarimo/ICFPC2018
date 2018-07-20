@@ -1,0 +1,14 @@
+halt
+wait
+flip
+smove dx dy dz
+lmove dx1 dy1 dz1 dx2 dy2 dz2
+fusionp dx dy dz
+fusions dx dy dz
+fission dx dy dz m
+fill dx dy dz
+
+# smove x|y|z len
+# lmove x|y|z len1 x|y|z len2
+# fusionp id
+# fusions id
