@@ -1,14 +1,20 @@
 # メイドインアビスをみて
 
-from flask import Flask, render_template, make_response
+from flask import Flask, render_template, make_response, send_from_directory
+from flask_cors import CORS
 from db import get_connection
 import const
 import logging
 
 
 app = Flask(__name__)
+CORS(app)
 connection = get_connection()
 
+
+@app.route("/assets/<path:path>")
+def assets(path):
+    return send_from_directory(const.root / 'official-tools' / 'assets', path)
 
 @app.route("/models/<name>/blob")
 def model_blob(name: str):
@@ -34,7 +40,6 @@ def model_list():
     rows = cursor.fetchall()
     cursor.close()
     return render_template("model_list.html", models=rows)
-
 
 @app.route("/")
 def hello():
