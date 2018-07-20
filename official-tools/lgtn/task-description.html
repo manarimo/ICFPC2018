@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href='https://fonts.googleapis.com/css?family=Architects+Daughter' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" href="../assets/css/style.css?v=dfb89c852cbc6b47d2bd9fa0a16cea1f0e2eebef" media="screen" type="text/css">
+    <!-- <link rel="stylesheet" href="/assets/css/print.css" media="print" type="text/css"> -->
+
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.3/html5shiv.min.js"></script>
+    <![endif]-->
+
+    <!-- Begin Jekyll SEO tag v2.5.0 -->
+<title>Task Description (Lightning) | ICFP Programming Contest 2018</title>
+<meta name="generator" content="Jekyll v3.7.3" />
+<meta property="og:title" content="Task Description (Lightning)" />
+<meta property="og:locale" content="en_US" />
+<link rel="canonical" href="task-description.html" />
+<meta property="og:url" content="https://icfpcontest2018.github.io/lgtn/task-description.html" />
+<meta property="og:site_name" content="ICFP Programming Contest 2018" />
+<script type="application/ld+json">
+{"@type":"WebPage","url":"https://icfpcontest2018.github.io/lgtn/task-description.html","headline":"Task Description (Lightning)","@context":"http://schema.org"}</script>
+<!-- End Jekyll SEO tag -->
+
+  </head>
+
+  <body>
+    <header>
+      <div class="inner">
+        <a href="../index.html">
+          <h1>ICFP Programming Contest 2018</h1>
+        </a>
+        <!-- <h2>ICFP Programming Contest 2018 (website)</h2> -->
+        
+        
+      </div>
+    </header>
+
+
+    <div id="content-wrapper">
+      <div class="wide-inner clearfix">
+        <section id="main-content" style="width: 100%;">
+          <h1 id="task-description-lightning">Task Description (Lightning)</h1>
+
+<p>Thank you for purchasing a Standard Nanobot Matter Manipulation System (NMMS).
+Enclosed you will find one matter subspace pad and one fission/fusion-capable
+nanobot.
+Simply load an approprate trace, place the nanobot at the origin of the pad,
+power on the system, and watch the nanobot begin construction.</p>
+
+<p>As an early adopter, please understand the shortage of freely available nanobot
+traces.
+Although your Standard Nanobot Matter Manipulation System ships with default
+nanobot traces for constructing target models, they are extremely energy
+inefficient.
+We hope that you will enjoy generating your own nanobot traces and will
+contribute energy efficient ones back to the community.</p>
+
+<h2 id="synopsis">Synopsis</h2>
+
+<p>Generate nanobot traces to construct target 3D objects while minimizing energy
+used.</p>
+
+<hr />
+
+<h1 id="nanobot-matter-manipulation-system-overview">Nanobot Matter Manipulation System Overview</h1>
+
+<div class="fig-left">
+  <p><img src="../assets/images/buildatron4000.png" alt="Build-a-Tron 4000" />
+The initial nanobot is affectionately known as the Build-a-Tron 4000.</p>
+</div>
+<p>The Nanobot Matter Manipulation System is a breakthrough technology that enables
+a new form of 3D printing.
+The matter subspace pad utilizes advances in subspace physics to facilitate the
+light-weight conversion of energy to matter.
+During execution, the pad generates a (global) resonant subspace field that
+establishes a matrix of voxels in which matter can be created.
+The field holds matter at its fixed position in the matrix; under low harmonics,
+all matter must be part of a connected component that rests on the floor
+(“grounded”), while, under high harmonics, matter is unconstrained (“floating”).
+For precision construction, nanobots are used to focus the resonant subspace
+field during energy-matter conversion, creating matter within a voxel.
+Nanobots are able to move through empty voxels of the matrix; utilizing a local
+high-harmonics resonant subspace field, a nanobot’s position is unconstrained
+(“floating”).
+Nanobots are able to undergo fission (to fork off another nanobot) and fusion
+(to join with another nanobot).</p>
+
+<p>Construction always begins and ends with a single nanobot at the origin of the
+matter subspace pad and proceeds in discrete time steps.
+Each time step, the pad generates a synchronous time-step signal that
+coordinates the actions of the nanobots.
+In response to the time-step signal, each active nanobot performs a single
+command.
+Commands include moving, swaping harmonics, creating matter, and undergoing
+fission and fusion.
+All commands take effect simultaneously at the end of the time step.
+In general, it is an error if the commands of different nanobots interfere or
+have conflicting updates to the state of the system.</p>
+
+<p>Each time step that the matter subspace pad is active has an energy cost, which
+depends on the volume of the space in which the resonant subspace field is being
+generated and the global harmonics.
+Similarly, each time step that a nanobot is active has an energy cost that
+depends on the command being performed.</p>
+
+<hr />
+
+<h1 id="details">Details</h1>
+
+<h2 id="coordinate-system">Coordinate System</h2>
+
+<p>The (global) resonant subspace field of the matter subspace pad establishes a
+cubical matrix (Cartesian grid) in finite three-dimensional Euclidean space,
+where each voxel of the matrix corresponds to a cubical volume of space.  With
+respect to an observer, the x-axis extends from left to right, the y-axis
+extends from bottom to top, and the z-axis extends from near to far.</p>
+
+<h3 id="resolutions">Resolutions</h3>
+
+<p>A <strong>resolution</strong> <em>R</em> specifies the number of voxels of the matrix along the x-,
+y-, and z-axes, where <em>R</em> is an integer and satisfies <em>0 &lt; R ≤ 250</em>.</p>
+
+<h3 id="coordinates">Coordinates</h3>
+
+<p>A <strong>coordinate</strong> <em>c</em> specifies a particular voxel of the matrix and is written
+<em>(x, y, z)</em>, where <em>x</em>, <em>y</em>, and <em>z</em> are non-negative integers.  For a matrix
+with resolution <em>R</em>, coordinate <em>(0, 0, 0)</em> corresponds to the left, bottom,
+near voxel of the matrix and coordinate <em>(R - 1, R - 1, R - 1)</em> corresponds to
+the right, top, far voxel of the matrix.</p>
+
+<h3 id="coordinate-differences">Coordinate Differences</h3>
+
+<p>A <strong>coordinate difference</strong> <em>d</em> specifies the relative position of one
+coordinate to another and is written <em>&lt;dx, dy, dz&gt;</em>, where <em>dx</em>, <em>dy</em>, and <em>dz</em>
+are (positive or negative) integers.  Adding distance <em>d = &lt;dx, dy, dz&gt;</em> to
+coordinate <em>c = &lt;x, y, z&gt;</em>, written <em>c + d</em>, yields the coordinate <em>&lt;x + dx, y +
+dy, z + dz&gt;</em>.</p>
+
+<p>The <strong>Manhattan length</strong> (or <em>L<sub>1</sub></em> norm) of a coordinate difference <em>d
+= &lt;dx, dy, dz&gt;</em> is written <em>mlen(d)</em> and defined as <em>|dx| + |dy| + |dz|</em> (the
+sum of the absolute values of <em>dx</em>, <em>dy</em>, and <em>dz</em>).  The Manhattan length of a
+coordinate difference is always a non-negative integer.</p>
+
+<p>Coordinates <em>c</em> and <em>c′</em> are <strong>adjacent</strong> if there exists a coordinate
+difference <em>d</em> such that <em>c′ = c + d</em> and <em>mlen(d) = 1</em>.  More
+intuitively, coordinates are adjacent if they differ in exactly one component by
+exactly <em>1</em>.</p>
+
+<p>The <strong>Chessboard length</strong> (or Chebyshev distance or <em>L<sub>∞</sub></em> norm) of a
+coordinate difference <em>d = &lt;dx, dy, dz&gt;</em> is written <em>clen(d)</em> and defined as
+<em>max(|dx|, |dy|, |dz|)</em> (the maximum of the absolute values of <em>dx</em>, <em>dy</em>, and
+<em>dz</em>).  The Chessboard length of a coordinate difference is always a
+non-negative integer.</p>
+
+<h4 id="linear-coordinate-differences">Linear Coordinate Differences</h4>
+
+<p>A coordinate difference <em>d = &lt;dx, dy, dz&gt;</em> is a <strong>linear coordinate difference</strong>
+(notated <em>ld</em>) if <em>dx ≠ 0 ∧ dy = 0 ∧ dz = 0</em> or <em>dx = 0 ∧ dy ≠
+0 ∧ dz = 0</em> or <em>dx = 0 ∧ dy = 0 ∧ dz ≠ 0</em>.  That is, a coordinate
+difference is a linear coordinate difference if exactly one component is
+non-zero.  (For a linear coordinate difference, the Manhattan length is always
+equal to the Chessboard length and is always greater than zero.)</p>
+
+<p>A linear coordinate difference <em>ld</em> is a <strong>short linear coordinate difference</strong>
+(notated <em>sld</em>) if <em>mlen(ld) ≤ 5</em>.  There are exactly <em>30</em> short linear
+coordinate differences.</p>
+
+<p>A linear coordinate difference <em>ld</em> is a <strong>long linear coordinate difference</strong>
+(notated <em>lld</em>) if <em>mlen(ld) ≤ 15</em>.  There are exactly <em>90</em> long linear
+coordinate differences.</p>
+
+<h4 id="near-coordinate-differences">Near Coordinate Differences</h4>
+
+<p>A coordinate difference <em>d</em> is a <strong>near coordinate difference</strong> (notated <em>nd</em>)
+if <em>0 &lt; mlen(d) ≤ 2</em> and <em>clen(d) = 1</em>.  That is, a coordinate difference
+is a near coordinate difference if at least one and at most two components have
+the value <em>-1</em> or <em>1</em> and the other components have the value <em>0</em>.  There are
+exactly <em>18</em> near coordinate differences.</p>
+
+<h4 id="regions">Regions</h4>
+
+<p>A <strong>region</strong> <em>r</em> specifies opposing corners of a rectangular cuboid and is
+written <em>[c<sub>1</sub>, c<sub>2</sub>]</em>.  A coordinate <em>c = (x, y, z)</em> is a
+member of a region <em>r = [c<sub>1</sub>,c<sub>2</sub>]</em>, where <em>c<sub>1</sub> =
+(x<sub>1</sub>, y<sub>1</sub>, z<sub>1</sub>)</em> and <em>c<sub>2</sub> =
+(x<sub>2</sub>, y<sub>2</sub>, z<sub>2</sub>)</em>, if
+<em>min(x<sub>1</sub>,x<sub>2</sub>) ≤ x ≤ max(x<sub>1</sub>,x<sub>2</sub>)</em>,
+<em>min(y<sub>1</sub>,y<sub>2</sub>) ≤ y ≤ max(y<sub>1</sub>,y<sub>2</sub>)</em>,
+and <em>min(z<sub>1</sub>,z<sub>2</sub>) ≤ z ≤
+max(z<sub>1</sub>,z<sub>2</sub>)</em>.</p>
+
+<p>Two regions are considered equal if they have the same set of coordinates as
+members; equivalently, two regions are considered equal if they describe the
+same rectangular cuboid.</p>
+
+<p>The <strong>dimension</strong> of a region <em>r = [(x<sub>1</sub>, y<sub>1</sub>,
+z<sub>1</sub>), (x<sub>2</sub>, y<sub>2</sub>, z<sub>2</sub>)]</em> is written
+<em>dim(r)</em> and is defined as <em>(x<sub>1</sub> = x<sub>2</sub> ? 0 : 1) +
+(y<sub>1</sub> = y<sub>2</sub> ? 0 : 1) + (z<sub>1</sub> = z<sub>2</sub> ? 0 :
+1)</em>.  That is, the dimension of a region counts the number of components that
+differ.  A region with dimension 0 is a “point”; a region with dimension 1 is a
+“line”; a region with dimension 2 is a “plane”; and a region with dimension 3 is
+a “box”.</p>
+
+<h2 id="matrix">Matrix</h2>
+
+<p>A <strong>matrix</strong> <em>M</em> has an implicit resolution <em>R</em> and specifies the state of each
+voxel as either <strong><em>Full</em></strong> (containing matter) or <strong><em>Void</em></strong> (containing no
+matter).  A matrix <em>M</em> can be considered a function from coordinates valid with
+respect to the resolution <em>R</em> to either <em>Full</em> or <em>Void</em>.</p>
+
+<h3 id="grounded">Grounded</h3>
+
+<p>A <em>Full</em> coordinate <em>c = (x, y, z)</em> of a matrix <em>M</em> is <strong>grounded</strong> if either <em>y
+= 0</em> or there exists an adjacent <em>Full</em> coordinate <em>c′ = c + d</em> (where
+<em>mlen(d) = 1</em>) that is itself grounded.  (Alternatively, a <em>Full</em> coordinate <em>c</em>
+is grounded if there is a (possibly empty) sequence of adjacent <em>Full</em>
+coordinates that starts with the coordinate <em>c</em> and ends with a <em>Full</em>
+coordinate <em>c′ = (x′, 0, z′)</em>.)</p>
+
+<h2 id="system-state-and-execution">System State and Execution</h2>
+
+<h3 id="state">State</h3>
+
+<p>The state <em>S</em> of an executing Nanobot Matter Manipulation System is comprised of:</p>
+
+<p><!-- * _time_: the number of time steps executed (a non-negative integer) -->
+ <!-- * _commands_: the number of commands executed (a non-negative integer) --></p>
+<ul>
+  <li><em>energy</em>: the amount of energy expended (an integer)</li>
+  <li><em>harmonics</em>: the (global) field harmonics (either <em>Low</em> or <em>High</em>)</li>
+  <li><em>matrix</em>: the matrix of voxels (each voxel either <em>Full</em> or <em>Empty</em>)</li>
+  <li><em>bots</em>: the set of active nanobots</li>
+  <li><em>trace</em>: the sequence of commands to be performed by nanobots</li>
+</ul>
+
+<p>The state of an active nanobot <em>bot</em> is comprised of:</p>
+
+<ul>
+  <li><em>bid</em>: the (unique) identifier (a positive integer)</li>
+  <li><em>pos</em>: the position (a coordinate)</li>
+  <li><em>seeds</em>: the set of identifiers available for fission</li>
+</ul>
+
+<p>Furthermore, a system state is <strong>well-formed</strong> if it satisfies the following
+properties:</p>
+
+<ul>
+  <li>If the harmonics is <em>Low</em>, then all <em>Full</em> voxels of the matrix are grounded.</li>
+  <li>Each active nanobot has a different identifier.</li>
+  <li>The position of each active nanobot is distinct and is <em>Void</em> in the matrix.</li>
+  <li>The seeds of each active nanobot are disjoint.</li>
+  <li>The seeds of each active nanobot does not include the identifier of any active nanobot.</li>
+</ul>
+
+<h3 id="execution">Execution</h3>
+
+<p>Each time step that there are active nanobots, commands are taken from the trace
+and assigned to nanobots and the system state is updated in response to the
+commands performed by each nanobot.</p>
+
+<p>In general, it is an error if the commands of different nanobots <strong>interfere</strong>.
+Examples of interference include:
+two nanobots moving through the same coordinate;
+two nanobots creating matter at the same coordinate;
+one nanobot fissioning a nanobot at a coordinate and another nanobot waiting in
+the same coordinate.
+More specifically, the commands of one nanobot group <em>bots<sub>1</sub></em>
+interferes with the commands of another nanobot group <em>bots<sub>2</sub></em> if the
+volatile coordinates of the commands of <em>bots<sub>1</sub></em> include any of the
+volatile coordinates of the commands of <em>bots<sub>2</sub></em>.
+The <strong>volatile coordinates</strong> of a nanobot group are those coordinates occupied
+by nanobots of the group and being “used” by the commands of the group during
+the time step.</p>
+
+<p>At the beginning of a time step, it is an error if the system state is not
+well-formed.</p>
+
+<p>The commands to be performed by the active nanobots are taken from the trace.
+Let <em>S.bots = {bot<sub>1</sub>, bot<sub>2</sub>, …, bot<sub>n</sub>}</em>, where
+<em>bot<sub>1</sub>.bid &lt; bot<sub>2</sub>.bid &lt; … &lt;
+bot<sub>n</sub>.bid</em>.  (In other words, the <em>n</em> active nanobots are sorted by
+identifier.)  Let <em>S.trace = cmd<sub>1</sub> cmd<sub>2</sub> … cmd<sub>n</sub>
+…</em>.  (It is an error if <em>S.trace</em> contains less than <em>n</em> commands.)  Each
+nanobot <em>bot<sub>i</sub></em> is assigned the command <em>cmd<sub>i</sub></em> and nanobot
+command groups are formed.  Command pre-conditions that would lead to an error
+are checked with respect to the starting state matrix (before any updates to the
+state matrix).  Interference between the volatile coordinates of nanobot command
+groups that would lead to an error are checked.</p>
+
+<p>Assuming no errors, then the system state is be updated:</p>
+
+<ul>
+  <li>There is an energy cost each time step to maintain the (global) resonant
+ subspace field:</li>
+</ul>
+
+<blockquote>
+  <p>if (<em>S.harmonics == High</em>)<br />
+  <em>S.energy := S.energy + 30 * R * R * R</em><br />
+else // (<em>S.harmonics == Low</em>)<br />
+  <em>S.energy := S.energy + 3 * R * R * R</em><br />
+endif</p>
+</blockquote>
+
+<ul>
+  <li>There is an energy cost each time step for each active nanobot to maintain
+ its (local) resonant subspace field:</li>
+</ul>
+
+<blockquote>
+  <p><em>S.energy := S.energy + 20 * n</em></p>
+</blockquote>
+
+<ul>
+  <li>
+    <p>The effects of each nanobot command group on the state energy, matrix, and
+ active bots are applied to the system state.  Because none of the nanobot
+ command groups interfere, the order in which the effects of each nanobot
+ command group are applied does not matter.</p>
+  </li>
+  <li>
+    <p>The performed commands are removed from the trace:</p>
+  </li>
+</ul>
+
+<blockquote>
+  <p><em>S.trace := drop(S.trace, n)</em></p>
+</blockquote>
+
+<p><!-- * The state command count is incremented: --></p>
+
+<p><!-- > _S.commands := S.commands + n_ --></p>
+
+<p><!-- * The state time is incremented: --></p>
+
+<p><!-- > _S.time := S.time + 1_ --></p>
+
+<h2 id="nanobot-commands">Nanobot Commands</h2>
+
+<h3 id="singleton-nanobot-commands">Singleton Nanobot Commands</h3>
+
+<p>Most commands are performed by a single nanobot in isolation.  In the following
+descriptions, assume that the command is being performed by nanobot <em>bot</em> and
+let <em>c = bot.pos</em>.  Note that <em>c</em> (the current position of the nanobot) is
+always a volatile coordinate, because there would be interference if the command
+of any other nanobot were to “use” the current position of the nanobot.</p>
+
+<ul>
+  <li>
+    <p><em><strong>Halt</strong></em>:</p>
+
+    <p>It is an error if <em>c ≠ (0, 0, 0)</em> or if <em>S.bots ≠ { bot }</em> or if
+<em>S.harmonics ≠ Low</em>.</p>
+
+    <p>The volatile coordinate of this command is the coordinate <em>c</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p><em>S.bots := { }</em></p>
+    </blockquote>
+
+    <p>(The nanobot <em>bot</em> is removed from the set of active bots and the system
+halts.  Note that the pre-condition <em>S.bots == { bot }</em> ensures that this was
+the only nanobot remaining in the system.)</p>
+  </li>
+  <li>
+    <p><em><strong>Wait</strong></em>:</p>
+
+    <p>The volatile coordinate of this command is the coordinate <em>c</em>.</p>
+
+    <p>This command has no effect on the system state.</p>
+  </li>
+  <li>
+    <p><em><strong>Flip</strong></em>:</p>
+
+    <p>The volatile coordinate of this command is the coordinate <em>c</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p>if (<em>S.harmonics == High</em>)<br />
+  <em>S.harmonics := Low</em><br />
+else // (<em>S.harmonics == Low</em>)<br />
+  <em>S.harmonics := High</em><br />
+endif</p>
+    </blockquote>
+  </li>
+  <li>
+    <p><em><strong>SMove</strong> lld</em> (Straight Move):</p>
+
+    <p>(<em>lld</em> is a long linear coordinate difference.)</p>
+
+    <p>Let <em>c′ = c + lld</em>.</p>
+
+    <p>It is an error if <em>c′</em> is not a valid coordinate with respect to the
+resolution of the matrix.  It is an error if any coordinate in the region
+<em>[c,c′]</em> is <em>Full</em> in the matrix.</p>
+
+    <p>The volatile coordinates of this command are all coordinates in the region
+<em>[c,c′]</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p><em>bot.pos := c′</em><br />
+<em>S.energy := S.energy + 2 * mlen(lld)</em></p>
+    </blockquote>
+
+    <p>(The nanobot’s position is updated and there is an energy cost proportional
+the Manhattan length of the move.)</p>
+  </li>
+  <li>
+    <p><em><strong>LMove</strong> sld1 sld2</em> (L Move):</p>
+
+    <p>(<em>sld1</em> and <em>sld2</em> are short linear coordinate differences.)</p>
+
+    <p>Let <em>c′ = c + sld1</em> and <em>c″ = c′ + sld2</em>.</p>
+
+    <p>It is an error if <em>c′</em> or <em>c″</em> is not a valid coordinate with
+respect to the resolution of the matrix.  It is an error if any coordinate in
+the region <em>[c,c′]</em> or in the region <em>[c′,c″]</em> is <em>Full</em> in
+the matrix.</p>
+
+    <p>The volatile coordinates of this command are all coordinates in the regions
+<em>[c,c′]</em> and <em>[c′,c″]</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p><em>bot.pos := c″</em><br />
+<em>S.energy := S.energy + 2 * (mlen(sld<sub>1</sub>) + 2 + mlen(sld<sub>2</sub>))</em></p>
+    </blockquote>
+
+    <p>(The nanobot’s position is updated and there is an energy cost proportional
+the Manhattan length of the move.)</p>
+  </li>
+  <li>
+    <p><em><strong>Fission</strong> nd m</em>:</p>
+
+    <p>(<em>nd</em> is a near coordinate difference and <em>m</em> is a non-negative integer.)</p>
+
+    <p>It is an error if <em>bid.seeds = { }</em>.</p>
+
+    <p>Let <em>{bid<sub>1</sub>, bid<sub>2</sub>, …, bid<sub>n</sub>} = bid.seeds</em>
+(where <em>bid<sub>1</sub> &lt; bid<sub>2</sub> &lt; … &lt; bid<sub>n</sub></em>).</p>
+
+    <p>Let <em>c′ = c + nd</em>.</p>
+
+    <p>It is an error if <em>c′</em> is not a valid coordinate with respect to the
+resolution of the matrix.  It is an error if coordinate <em>c′</em> is <em>Full</em>
+in the matrix.  It is an error if <em>n &lt; m + 1</em>.</p>
+
+    <p>The volatile coordinates of this command are the coordinates <em>c</em> and <em>c′</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p><em>bot.seeds := {bid<sub>m+2</sub>, …, bid<sub>n</sub>}</em><br />
+<em>bot′.bid := bid<sub>1</sub></em><br />
+<em>bot′.pos := c′</em><br />
+<em>bot′.seeds := {bid<sub>2</sub>, …, bid<sub>m+1</sub>}</em><br />
+<em>S.bots := union(S.bots, { bot′ })</em><br />
+<em>S.energy := S.energy + 24</em></p>
+    </blockquote>
+
+    <p>(The lowest <em>m + 1</em> identifiers are removed from the parent bot’s seeds.  A
+new child bot <em>bot′</em> is added to the set of active bots.  The lowest of
+the removed identifers becomes the identifier of the child bot and the
+remaining <em>m</em> of the removed identifiers become the seeds of the child bot.
+Energy is expended during the creation of the child bot.)</p>
+  </li>
+  <li>
+    <p><em><strong>Fill</strong> nd</em>:</p>
+
+    <p>(<em>nd</em> is a near coordinate difference.)</p>
+
+    <p>Let <em>c′ = c + nd</em>.</p>
+
+    <p>It is an error if <em>c′</em> is not a valid coordinate with respect to the
+resolution of the matrix.</p>
+
+    <p>The volatile coordinates of this command are the coordinates <em>c</em> and
+<em>c′</em>.</p>
+
+    <p>The effect of this command is:</p>
+
+    <blockquote>
+      <p>if (<em>S.matrix(c′) == Void</em>)<br />
+  <em>S.matrix(c′) := Full</em><br />
+  <em>S.energy := S.energy + 12</em><br />
+else // (<em>S.matrix(c′) == Full</em>)<br />
+  <em>S.energy := S.energy + 6</em><br />
+endif</p>
+    </blockquote>
+
+    <p>(If the voxel had no matter, then energy is converted to matter (a positive
+energy cost).  If the voxel had matter, then energy is lost (a positive
+energy cost).)</p>
+  </li>
+</ul>
+
+<h3 id="group-nanobot-commands">Group Nanobot Commands</h3>
+
+<p>Some nanobot commands are performed through the coordinated action of a group of
+two or more nanobots.  It is an error if a group is missing one or more
+partners.</p>
+
+<ul>
+  <li>
+    <p><em><strong>FusionP</strong> nd</em> (Fusion Primary), <em><strong>FusionS</strong> nd</em> (Fusion Secondary):</p>
+
+    <p>(<em>nd</em> is a near coordinate difference.)</p>
+
+    <p>There are two nanobots <em>bot<sub>p</sub></em> and <em>bot<sub>s</sub></em> such that
+<em>bot<sub>p</sub></em> is performing <em><strong>FusionP</strong> nd<sub>p</sub></em> and
+<em>bot<sub>s</sub></em> is performing <em><strong>FusionS</strong> nd<sub>s</sub></em>, where
+<em>bot<sub>p</sub>.pos + nd<sub>p</sub> = bot<sub>s</sub>.pos</em> and
+<em>bot<sub>s</sub>.pos + nd<sub>s</sub> = bot<sub>p</sub>.pos</em>.  (The primary
+nanobot identifies the secondary nanobot’s position and the secondary nanobot
+identifies the primary nanobot’s position.)</p>
+
+    <p>It is an error if either coordinate <em>bot<sub>p</sub>.pos + nd<sub>p</sub></em> or
+coordinate <em>bot<sub>s</sub>.pos + nd<sub>s</sub></em> is not a valid coordinate
+with respect to the resolution of the matrix.</p>
+
+    <p>The volatile coordinates of this command group are the coordinates
+<em>bot<sub>p</sub>.pos</em> and <em>bot<sub>s</sub>.pos</em>.</p>
+
+    <p>The effect of this command group is:</p>
+
+    <blockquote>
+      <p><em>S.bots := diff(S.bots, { bot<sub>s</sub> })</em><br />
+<em>bot<sub>p</sub>.seeds := union(bot<sub>p</sub>.seeds, { bot<sub>s</sub>.bid }, bot<sub>s</sub>.seeds)</em><br />
+<em>S.energy := S.energy - 24</em></p>
+    </blockquote>
+
+    <p>(The secondary nanobot is removed from the set of active nanobots.  The
+secondary nanobot’s identifier and the secondary nanobot’s seeds are added to
+the primary nanobot’s seeds.  Energy is regained during the destruction of
+the secondary bot.)</p>
+  </li>
+</ul>
+
+<h2 id="traces">Traces</h2>
+
+<p>A <strong>trace</strong> <em>T</em> specifies the commands performed by each nanobot during an
+execution.  A trace is simply a sequence of commands, implicitly ordered first
+by time step and then by nanobot identifier.</p>
+
+<p>When executing a time step with <em>n</em> active nanobots, the <em>n</em> commands are taken
+from the trace and assigned to the active nanobots in identifier order (the
+first command is assigned to the nanobot with smallest identifier, the second
+command is assigned to the nanobot with the second smallest identifier, …, the
+last command is assigned to the nanobot with the largest identifier).</p>
+
+<h3 id="trace-files">Trace Files</h3>
+
+<p>A trace file is a binary encoding of a trace.</p>
+
+<p>By convention, a trace file has the extension <code class="highlighter-rouge">.nbt</code>.</p>
+
+<p>A trace file is simply a sequence of encoded commands, where each command is
+encoded as one, two, or four bytes.</p>
+
+<p>In the following <em>[b<sub>n</sub>…b<sub>2</sub>b<sub>1</sub>]<sup>n</sup></em>
+represents an <em>n</em>-bit value, where <em>b<sub>1</sub></em> is the least-significant bit
+and <em>b<sub>n</sub></em> is the most-significant bit and
+<em>[…«x»<sup>m</sup>…]<sup>n</sup></em> represents the embedding of an
+<em>m</em>-bit value within a larger <em>n</em>-bit value.</p>
+
+<h4 id="encoding-coordinate-differences">Encoding Coordinate Differences</h4>
+
+<p>The different types of coordinate differences that appear in commands have
+distinct encodings.</p>
+
+<h5 id="encoding-linear-coordinate-differences">Encoding Linear Coordinate Differences</h5>
+
+<p>A short linear coordinate difference <em>sld = &lt;dx, dy, dz&gt;</em> is encoded as a 2-bit
+axis <em>a</em> and a 4-bit (unsigned) integer <em>i</em> as follows:</p>
+
+<ul>
+  <li>if <em>dx ≠ 0</em>, then <em>a = [01]<sup>2</sup></em> and <em>i = dx + 5</em></li>
+  <li>if <em>dy ≠ 0</em>, then <em>a = [10]<sup>2</sup></em> and <em>i = dy + 5</em></li>
+  <li>if <em>dz ≠ 0</em>, then <em>a = [11]<sup>2</sup></em> and <em>i = dz + 5</em></li>
+</ul>
+
+<p>Recall that exactly one component of a short linear coordinate difference is
+non-zero and a short linear coordinate difference has Manhattan length greater
+than zero and less than or equal to 5.</p>
+
+<p>A long linear coordinate difference <em>lld = &lt;dx, dy, dz&gt;</em> is encoded as a 2-bit
+axis <em>a</em> and a 5-bit (unsigned) integer <em>i</em> as follows:</p>
+
+<ul>
+  <li>if <em>dx ≠ 0</em>, then <em>a = [01]<sup>2</sup></em> and <em>i = dx + 15</em></li>
+  <li>if <em>dy ≠ 0</em>, then <em>a = [10]<sup>2</sup></em> and <em>i = dy + 15</em></li>
+  <li>if <em>dz ≠ 0</em>, then <em>a = [11]<sup>2</sup></em> and <em>i = dz + 15</em></li>
+</ul>
+
+<p>Recall that exactly one component of a long linear coordinate difference is
+non-zero and a long linear coordinate difference has Manhattan length greater
+than zero and less than or equal to 15.</p>
+
+<h5 id="encoding-near-coordinate-differences">Encoding Near Coordinate Differences</h5>
+
+<p>A near coordinate difference <em>nd = &lt;dx, dy, dz&gt;</em> is encoded as a 5-bit
+(unsigned) integer with the value <em>(dx + 1) * 9 + (dy + 1) * 3 + (dz + 1)</em>.
+Recall that each component of a near coordinate difference must have the value
+<em>-1</em>, <em>0</em>, or <em>1</em>, but not all combinations are legal.  In particular, <em>&lt;1, 1,
+1&gt;</em> is not a near coordinate difference; hence the 5-bit value
+<em>[11111]<sup>5</sup> = 31</em> is not the encoding of any near coordinate
+difference.</p>
+
+<h4 id="encoding-commands">Encoding Commands</h4>
+
+<p>Each command is encoded by one or two bytes as follows:</p>
+
+<ul>
+  <li>
+    <p><em><strong>Halt</strong></em>:</p>
+
+    <blockquote>
+      <p><em>[11111111]<sup>8</sup></em></p>
+    </blockquote>
+  </li>
+  <li>
+    <p><em><strong>Wait</strong></em>:</p>
+
+    <blockquote>
+      <p><em>[11111110]<sup>8</sup></em></p>
+    </blockquote>
+  </li>
+  <li>
+    <p><em><strong>Flip</strong></em>:</p>
+
+    <blockquote>
+      <p><em>[11111101]<sup>8</sup></em></p>
+    </blockquote>
+  </li>
+  <li>
+    <p><em><strong>SMove</strong> lld</em>:</p>
+
+    <blockquote>
+      <p><em>[00«lld.a»<sup>2</sup>0100]<sup>8</sup> [000«lld.i»<sup>5</sup>]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>For example, <em><strong>SMove</strong> &lt;12,0,0&gt;</em> is encoded as <em>[00010100] [00011011]</em>
+and <em><strong>SMove</strong> &lt;0,0,-4&gt;</em> is encoded as <em>[00110100] [00001011]</em>.</p>
+  </li>
+  <li>
+    <p><em><strong>LMove</strong> sld1 sld2</em>:</p>
+
+    <blockquote>
+      <p><em>[«sld2.a»<sup>2</sup>«sld1.a»<sup>2</sup>1100]<sup>8</sup> [«sld2.i»<sup>4</sup>«sld1.i»<sup>4</sup>]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>For example, <em><strong>LMove</strong> &lt;3,0,0&gt; &lt;0,-5,0&gt;</em> is encoded as <em>[10011100] [00001000]</em>
+and <em><strong>LMove</strong> &lt;0,-2,0&gt; &lt;0,0,2&gt;</em> is encoded as <em>[11101100] [01110011]</em>.</p>
+  </li>
+  <li>
+    <p><em><strong>FusionP</strong> nd</em>:</p>
+
+    <blockquote>
+      <p><em>[«nd»<sup>5</sup>111]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>For example, <em><strong>FusionP</strong> &lt;-1,1,0&gt;</em> is encoded as <em>[00111111]</em>.</p>
+  </li>
+  <li>
+    <p><em><strong>FusionS</strong> nd</em>:</p>
+
+    <blockquote>
+      <p><em>[«nd»<sup>5</sup>110]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>For example, <em><strong>FusionS</strong> &lt;1,-1,0&gt;</em> is encoded as <em>[10011110]</em>.</p>
+  </li>
+  <li>
+    <p><em><strong>Fission</strong> nd m</em>:</p>
+
+    <blockquote>
+      <p><em>[«nd»<sup>5</sup>101]<sup>8</sup> [«m»<sup>8</sup>]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>The non-negative integer <em>m</em> is encoded as an 8-bit (unsigned) integer with the value <em>m</em>.</p>
+
+    <p>For example, <em><strong>Fission</strong> &lt;0,0,1&gt; 5</em> is encoded as <em>[01110101] [00000101]</em>.</p>
+  </li>
+  <li>
+    <p><em><strong>Fill</strong> nd</em>:</p>
+
+    <blockquote>
+      <p><em>[«nd»<sup>5</sup>011]<sup>8</sup></em></p>
+    </blockquote>
+
+    <p>For example, <em><strong>Fill</strong> &lt;0,-1,0&gt;</em> is encoded as <em>[01010011]</em>.</p>
+  </li>
+</ul>
+
+<h2 id="models">Models</h2>
+
+<p>A <strong>model</strong> <em>Mdl</em> specifies a 3D object.  A model is comprised of the resolution
+<em>R</em> of a matrix (which is large enough to contain the object) and the set of
+<em>Full</em> coordinates of the matrix that make up the object.</p>
+
+<p>A model is <strong>well-formed</strong> if</p>
+
+<ul>
+  <li>All coordinates of the set of <em>Full</em> coordinates must not belong to the
+reserved left-, right-, top-, near-, or far-face regions of the space.  That
+is, all <em>Full</em> coordinates <em>(x, y, z)</em> satisfy <em>1 ≤ x ≤ R - 2</em> and <em>0
+≤ y ≤ R - 2</em> and <em>1 ≤ z ≤ R - 2</em>.</li>
+  <li>All coordinates of the set of <em>Full</em> coordinates must be <strong>grounded</strong>.  That
+is, all <em>Full</em> coordinates <em>c = (x, y, z)</em> satisfy either <em>y = 0</em> or there
+exists an adjacent <em>Full</em> coordinate <em>c′ = c + d</em> (where <em>mlen(d) = 1</em>)
+that is grounded.</li>
+</ul>
+
+<h3 id="model-files">Model Files</h3>
+
+<p>A model file is binary encoding of a model.  (Note that this binary encoding
+handles both ill-formed and well-formed models.)</p>
+
+<p>By convention, a model file has the extension <code class="highlighter-rouge">.mdl</code>.</p>
+
+<p>The first byte of the model file encodes the resolution <em>R</em>, interpreting the
+byte as an 8-bit (unsigned) integer.</p>
+
+<p>The remaining <em>⌈(R × R × R) / 8⌉</em> bytes of the model file encode the set of
+<em>Full</em> coordinates.  The sequence of bytes are interpreted as a sequence of bits
+corresponding to the coordinates of the matrix by traversing the x-dimension
+from <em>0</em> to <em>R - 1</em>, traversing the y-dimension from <em>0</em> to <em>R - 1</em>, and
+traversing the z-dimension from <em>0</em> to <em>R - 1</em>.  More explicitly, coordinate
+<em>(x, y, z)</em> is <em>Full</em> in the model’s matrix if and only if bit <em>x × R × R + y ×
+R + z</em> is set.  Note that some high-bits of the last byte of the model file may
+be unused.</p>
+
+<h4 id="extended-model-files">Extended Model Files</h4>
+
+<p>An extended model file is a binary encoding of a model and a set of nanobot
+identifiers and positions.</p>
+
+<p>By convention, a model file has the extension <code class="highlighter-rouge">.xmdl</code>.</p>
+
+<p>As with a model file, the first byte of the extended model file encodes the
+resolution <em>R</em>, interpreting the byte as an 8-bit (unsigned) integer, and the
+subsequent <em>⌈(R × R × R) / 8⌉</em> bytes of the extended model file encode the set
+of <em>Full</em> coordinates.</p>
+
+<p>Subsequent 4-byte sequences encode the identifier <em>bid</em> and position <em>(x, y, z)</em>
+of nanobots.  The first byte encodes <em>bid</em>, the second byte encodes <em>x</em>, the
+third byte encodes <em>y</em>, and the fourth byte encodes <em>z</em>, in each case
+interpreting the byte as an 8-bit (unsigned) integer.</p>
+
+<h3 id="model-viewer">Model Viewer</h3>
+
+<p>A JavaScript and WebGL-based <a href="../view-model.html">model viewer</a> is available.</p>
+
+<hr />
+
+<h1 id="lightning-division">Lightning Division</h1>
+
+<p><a href="https://www.timeanddate.com/worldclock/fixedtime.html?msg=ICFP+Programming+Contest+2018&amp;iso=20180720T16">Friday 20 July 2018 16:00 UTC</a>
+to
+<a href="https://www.timeanddate.com/worldclock/fixedtime.html?msg=ICFP+Programming+Contest+2018+%28end+of+lightning+division%29&amp;iso=20180721T16">Saturday 21 July 2018 16:00 UTC</a></p>
+
+<p>Generate and submit nanobot traces to assemble target 3D models while minimizing
+energy used.</p>
+
+<h2 id="problems">Problems</h2>
+
+<p>Download <a href="../assets/problemsL.zip"><code class="highlighter-rouge">problemsL.zip</code></a>, which is a collection of
+(well-formed) target model files named <code class="highlighter-rouge">LA<em>NNN</em>_tgt.mdl</code>.  For each target model
+file <code class="highlighter-rouge">LA<em>NNN</em>_tgt.mdl</code>, generate a
+trace file named <code class="highlighter-rouge">LA<em>NNN</em>.nbt</code> that
+assembles the target model.  A <code class="highlighter-rouge">problemsL.txt</code> file acknowledges the sources for
+the problem models.</p>
+
+<h3 id="assembly-problems">Assembly Problems</h3>
+
+<p>For each <code class="highlighter-rouge">LA<em>NNN</em>_tgt.mdl</code> and
+corresponding <code class="highlighter-rouge">LA<em>NNN</em>.nbt</code>, let
+<em>Mdl<sub>tgt</sub></em> be the target model encoded by <code class="highlighter-rouge">LA<em>NNN</em>_tgt.mdl</code>, let <em>R</em> be the
+resolution of <em>Mdl<sub>tgt</sub></em>, and let <em>trace</em> be the trace encoded by <code class="highlighter-rouge">LA<em>NNN</em>.nbt</code>.  The trace is correct for
+this problem if, when executed from the initial system state <em>S<sub>init</sub></em>
+where</p>
+
+<p><!-- * _S<sub>init</sub>.time := 0_ -->
+ <!-- * _S<sub>init</sub>.commands := 0_ --></p>
+<ul>
+  <li><em>S<sub>init</sub>.energy := 0</em></li>
+  <li><em>S<sub>init</sub>.harmonics := Low</em></li>
+  <li><em>S<sub>init</sub>.matrix(c) := Void</em>    for all coordinates <em>c</em> valid with respect to the resolution <em>R</em></li>
+  <li><em>S<sub>init</sub>.bots := { bot<sub>init</sub> }</em>
+    <ul>
+      <li><em>bot<sub>init</sub>.bid := 1</em></li>
+      <li><em>bot<sub>init</sub>.pos := (0, 0, 0)</em></li>
+      <li><em>bot<sub>init</sub>.seeds := { 2, …, 20 }</em></li>
+    </ul>
+  </li>
+  <li><em>S<sub>init</sub>.trace := trace</em></li>
+</ul>
+
+<p>there are no decoding or execution errors and the final state <em>S<sub>fini</sub></em>
+satisfies</p>
+
+<ul>
+  <li><em>S<sub>fini</sub>.harmonics == Low</em></li>
+  <li><em>S<sub>fini</sub>.matrix(c) == Mdl<sub>tgt</sub>(c)</em>     for all coordinates <em>c</em> valid with respect to the resolution <em>R</em></li>
+  <li><em>S<sub>fini</sub>.bots == { }</em></li>
+  <li><em>S<sub>fini</sub>.trace == ε</em></li>
+</ul>
+
+<p>The final energy of the trace is <em>S<sub>fini</sub>.energy</em>.</p>
+
+<h2 id="default-traces">Default Traces</h2>
+
+<p>A provided <a href="../assets/dfltTracesL.zip"><code class="highlighter-rouge">dfltTracesL.zip</code></a> is a collection of default
+traces.  These default traces establish an upper-bound energy for each problem,
+used for scoring.</p>
+
+<p>Each default trace for an assembly problem applies the same uniform strategy (a
+“classic” 3D printing): compute a bounding box for the target model, set
+harmonics to <em>High</em>, use a single “head” nanobot to sweep each xz-plane of the
+bounding box from bottom to top and filling the voxel below the nanobot as
+dictated by the target model, return to the origin, set harmonics to <em>Low</em>, and
+halt.</p>
+
+<h2 id="scoring">Scoring</h2>
+
+<p>A team’s score for each problem depends upon the final energy of their submitted
+trace, the final energy of the corresponding default trace, and the minimum
+energy among all teams’ corresponding submitted traces, and the resolution of
+the problem.</p>
+
+<p>Let <em>energy<sub>team</sub></em> be the final energy of the team’s submitted trace,
+<em>energy<sub>dflt</sub></em> be the final energy of the corresponding default trace,
+<em>energy<sub>best</sub></em> be the minimum energy among all teams’ corresponding
+submitted traces and the value <em>energy<sub>dflt</sub> - 1</em>, and <em>R</em> be the
+resolution of the problem.  (If a submitted trace has decoding or execution
+errors or final energy that exceeds that of the corresponding default trace,
+then treat it as having final energy equal to that of the corresponding default
+trace.  This ensures that it is always the case that <em>energy<sub>best</sub> ≤
+energy<sub>team</sub> ≤ energy<sub>dflt</sub></em> and <em>energy<sub>best</sub>
+&lt; energy<sub>dflt</sub></em>.)  The team’s score for the problem is</p>
+
+<blockquote>
+  <p><em>⌊(⌊log<sub>2</sub> R⌋ × 1000 × (energy<sub>dflt</sub> - energy<sub>team</sub>)) / (energy<sub>dflt</sub> - energy<sub>best</sub>)⌋</em></p>
+</blockquote>
+
+<p>(Intuitively, a team’s score is linearly interpolated from <em>0</em> (if the submitted
+trace is no better than the default) to <em>⌊log<sub>2</sub> R⌋ × 1000</em> (if the
+submitted trace is the best).  The <em>⌊log<sub>2</sub> R⌋</em> term gives more weight
+to larger problems and the flooring allows scores to be calculated with
+(arbitrary-precision) integers.)</p>
+
+<p>A team’s contest score is the sum of their scores for all problems.</p>
+
+<p>The contest winner is the team with the highest score.</p>
+
+<h2 id="trace-checker">Trace Checker</h2>
+
+<p>A JavaScript <a href="chk-trace.html">trace checker</a> is available, which can be
+used to verify that a trace file successfully decodes to a sequence of commands
+and to display a prefix and suffix of the full trace.</p>
+
+<h2 id="trace-executor">Trace Executor</h2>
+
+<p>A JavaScript and WebGL-based <a href="exec-trace.html">trace executor</a> is
+available for testing submissions.  A (marginally) faster JavaScript-based
+<a href="exec-trace-novis.html">trace executor without visualization</a> is also
+available for testing submissions.</p>
+
+<h2 id="registration-and-submission">Registration and Submission</h2>
+
+<p><a href="../register.html">Register</a> a contest team to obtain a team-specific private
+identifier (a 32-digit hexadecimal string).</p>
+
+<p>After generating correct traces, prepare a single <code class="highlighter-rouge">.zip</code> file containing exactly
+(no more than and no less than) the files <code class="highlighter-rouge">LA<em>NNN</em>.nbt</code>; the provided
+<a href="../assets/dfltTracesL.zip"><code class="highlighter-rouge">dfltTracesL.zip</code></a> demonstrates the submission format.
+The <code class="highlighter-rouge">.zip</code> file may optionally be encrypted (<code class="highlighter-rouge">zip --encrypt</code>) with the
+team-specific private identifier (if a team is concerned about posting
+submissions to a publicly accessible location during the contest).  Make the
+<code class="highlighter-rouge">.zip</code> file available at a publicly accessible URL (a personal or institutional
+web server, Dropbox, Google Drive, etc.).  <a href="../submit.html">Submit</a> the URL and
+SHA256 checksum of the <code class="highlighter-rouge">.zip</code> file before the <a href="https://www.timeanddate.com/worldclock/fixedtime.html?msg=ICFP+Programming+Contest+2018+%28end+of+lightning+division%29&amp;iso=20180721T16">end of the lightning
+division</a>
+and watch for a <a href="../submission-acks.html">submission acknowledgement</a>.
+Note that submissions for the lightning division open at
+<a href="https://www.timeanddate.com/worldclock/fixedtime.html?msg=ICFP+Programming+Contest+2018+%28lightning+division+submissions+open%29&amp;iso=20180720T18">2018-07-20T18:00:00Z</a>
+(two hours into the lightning division).</p>
+
+<p>Teams may submit multiple times during the contest (using either a new or the
+same URL, but different SHA256 checksum), but teams are limited to one
+submission every 15 minutes; early submissions may be evaluated during the
+contest for live standings, but only the last submissions for the lightning
+division will be considered for prizes.  The last submissions for the lightning
+division should remain available for up to two weeks after the end of the
+contest.</p>
+
+<p>To be considered for prizes, <a href="https://www.timeanddate.com/worldclock/fixedtime.html?msg=ICFP+Programming+Contest+2018+%28source+code+submission+deadline%29&amp;iso=20180723T18">within two hours of end of the
+contest</a>,
+teams must update their <a href="../profile.html">profile</a> with complete team information
+and submit the URL and SHA256 checksum of a single <code class="highlighter-rouge">.zip</code> archive with their
+source code, a <code class="highlighter-rouge">README.txt</code> file (brief directions for judges to build/run the
+solution; description of the solution approach; feedback about the contest;
+self-nomination for judges’ prize; etc.), and any other supporting materials.</p>
+
+<!--
+LocalWords:  voxel voxels
+ -->
+
+        </section>
+      </div>
+    </div>
+
+    
+
+  </body>
+</html>
+
