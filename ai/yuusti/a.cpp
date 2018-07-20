@@ -107,42 +107,55 @@ void input() {
     cerr << NUM << endl;
 }
 
+int dx[] = {0, 1, 0, -1, 0};
+int dz[] = {1, 0, -1, 0, 0};
+int dy[] = {0, 0, 0, 0, 1};
+
 int main() {
     input();
 
-    queue<P> q;
-    for (int y = 0; y < R; ++y) {
-        for (int x = 0; x < R; ++x) {
-            for (int z = 0; z < R; ++z) {
-                if (field[x][y][z]) {
-                    q.push({x, y, z});
-                }
+    deque<P> q;
+    for (int x = 0; x < R; ++x) {
+        for (int z = 0; z < R; ++z) {
+            if (field[x][0][z]) {
+                q.push_front({x, 0, z});
+                field[x][0][z] = false;
             }
-        };
-    }
+        }
+    };
 
     bot b = bot {{0, 0, 0}, {}};
 
     b.smove({0, 1, 0});
 
+    int cnt = 0;
     while(!q.empty()) {
-        auto p = q.front(); q.pop();
+        auto p = q.front(); q.pop_front();
+        ++cnt;
         while (p.y + 1 > b.pos.y) {
             b.smove({0, 1, 0});
-            if (b.pos.y > 1 && !high) b.flip();
         }
         while(p.x - b.pos.x > 0) b.smove({min(p.x - b.pos.x, 15), 0, 0});
         while(p.x - b.pos.x < 0) b.smove({-min(b.pos.x - p.x, 15), 0, 0});
         while(p.z - b.pos.z > 0) b.smove({0, 0, min(p.z - b.pos.z, 15)});
         while(p.z - b.pos.z < 0) b.smove({0, 0, -min(b.pos.z - p.z, 15)});
         b.fill({0, -1, 0});
+        for (int i = 0; i < 5; ++i) {
+            P np = p + P{dx[i], dy[i], dz[i]};
+            if (field[np.x][np.y][np.z]) {
+                i != 4 ? q.push_front(np) : q.push_back(np);
+                field[np.x][np.y][np.z] = false;
+            }
+        }
     }
+    cerr << cnt << endl;
 
     while(b.pos.x > 0) b.smove({-(min(b.pos.x, 15)), 0, 0});
     while(b.pos.z > 0) b.smove({0, 0, -min(b.pos.z, 15)});
     while(b.pos.y > 0) b.smove({0, -min(b.pos.y, 15), 0});
-    if (high) b.flip();
     b.halt();
+
+    assert(NUM == cnt);
 
     return 0;
 }
