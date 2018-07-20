@@ -1,14 +1,19 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from db import get_connection
+from hashlib import sha1
 
 
 def register(name: str, blob: bytes, energy: int):
+    hasher = sha1()
+    hasher.update(blob)
+    digest = hasher.digest()
+
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT id FROM tblmodel WHERE name=%s", (name,))
     model_id = cursor.fetchone()["id"]
-    cursor.execute("INSERT INTO tbltrace (model_id, body, score) VALUES (%s, %s, %s)", (model_id, blob, -energy))
+    cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s)", (model_id, blob, -energy, digest))
     trace_id = cursor.lastrowid
     cursor.execute("INSERT INTO tbltrace_metadata (trace_id, energy) VALUES (%s, %s)", (trace_id, energy))
     cursor.close()
