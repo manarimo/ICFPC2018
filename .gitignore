@@ -4,3 +4,4 @@ venv
 **/__pycache__
 a.out
 *.iml
+**/node_modules

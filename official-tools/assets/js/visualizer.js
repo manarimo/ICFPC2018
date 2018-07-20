@@ -537,6 +537,22 @@ function initVisualizer(config) {
         canvas_container.appendChild(b);
     }
 
+    function postImage(url, name) {
+        render();
+        fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                data: renderer.domElement.toDataURL('image/png'),
+                name: name,
+            }),
+            headers: {
+                'content-type': 'application/json'
+            }
+        })
+            .then(() => console.log('Success'))
+            .catch((err) => console.log(err));
+    }
+
     // Controls
     function onKeyPress (e) {
         if (e.key == 'r') {
@@ -786,6 +802,6 @@ function initVisualizer(config) {
             setMatrixFn: setMatrixFn,
             fillMatrix: fillMatrix, voidMatrix: voidMatrix,
             botAdd: botAdd, botRem: botRem, botMove: botMove,
-            render: render}
+            render: render, postImage: postImage}
 
 }
