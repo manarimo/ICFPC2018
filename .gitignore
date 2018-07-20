@@ -5,3 +5,4 @@ venv
 a.out
 *.iml
 **/node_modules
+config/env.txt
