@@ -7,7 +7,7 @@ API_ENDPOINT = "https://script.google.com/macros/s/AKfycbzQ7Etsj7NXCN5thGthCvApa
 
 
 def do_request(params: Dict[str, str]):
-    return requests.get(API_ENDPOINT, params).json
+    return requests.get(API_ENDPOINT, params).json()
 
 
 def do_submit(submission_url: str, submission_sha: str):
