@@ -4,6 +4,7 @@ using namespace std;
 
 const int RMAX = 250;
 bool field[RMAX][RMAX][RMAX]; // x, y, z
+bool placed[RMAX][RMAX][RMAX]; // x, y, z
 int R, NUM;
 
 bool high = false;
@@ -79,6 +80,43 @@ struct bot {
     }
 };
 
+struct UnionFind {
+    vector<int> par, sz;
+
+    UnionFind(int n) {
+        par.resize(n);
+        sz.resize(n);
+        for (int i = 0; i < n; ++i) {
+            par[i] = i;
+            sz[i] = 1;
+        }
+    }
+
+    int find(int x) {
+        if (x == par[x]) return x;
+        return par[x] = find(par[x]);
+    }
+
+    void unite(int x, int y) {
+        x = find(x);
+        y = find(y);
+        par[x] = y;
+        if (x == y) return;
+        sz[y] += sz[x];
+    }
+
+    int size(int x) {
+        return sz[find(x)];
+    }
+};
+
+int f(P p) {
+    return p.x * R * R + p.y * R + p.z;
+}
+
+int dx[] = {0, 1, 0, -1, 0};
+int dz[] = {1, 0, -1, 0, 0};
+int dy[] = {0, 0, 0, 0, -1};
 
 void input() {
     cin.tie(0);
@@ -107,22 +145,21 @@ void input() {
     cerr << NUM << endl;
 }
 
-int dx[] = {0, 1, 0, -1, 0};
-int dz[] = {1, 0, -1, 0, 0};
-int dy[] = {0, 0, 0, 0, 1};
-
 int main() {
     input();
 
-    deque<P> q;
-    for (int x = 0; x < R; ++x) {
-        for (int z = 0; z < R; ++z) {
-            if (field[x][0][z]) {
-                q.push_front({x, 0, z});
-                field[x][0][z] = false;
+    queue<P> q;
+    for (int y = 0; y < R; ++y) {
+        for (int x = 0; x < R; ++x) {
+            for (int z = 0; z < R; ++z) {
+                if (field[x][y][z]) {
+                    q.push({x, y, z});
+                }
             }
-        }
-    };
+        };
+    }
+
+    UnionFind uf(R * R * R);
 
     bot b = bot {{0, 0, 0}, {}};
 
@@ -130,8 +167,9 @@ int main() {
 
     int cnt = 0;
     while(!q.empty()) {
-        auto p = q.front(); q.pop_front();
+        auto p = q.front(); q.pop();
         ++cnt;
+        placed[p.x][p.y][p.z] = true;
         while (p.y + 1 > b.pos.y) {
             b.smove({0, 1, 0});
         }
@@ -139,23 +177,27 @@ int main() {
         while(p.x - b.pos.x < 0) b.smove({-min(b.pos.x - p.x, 15), 0, 0});
         while(p.z - b.pos.z > 0) b.smove({0, 0, min(p.z - b.pos.z, 15)});
         while(p.z - b.pos.z < 0) b.smove({0, 0, -min(b.pos.z - p.z, 15)});
-        b.fill({0, -1, 0});
-        for (int i = 0; i < 5; ++i) {
-            P np = p + P{dx[i], dy[i], dz[i]};
-            if (field[np.x][np.y][np.z]) {
-                i != 4 ? q.push_front(np) : q.push_back(np);
-                field[np.x][np.y][np.z] = false;
+
+        if (p.y == 0) {
+            uf.unite(f(p), f({0, 0, 0}));
+        } else {
+            for (int i = 0; i < 5; ++i) {
+                P adj = p + P{dx[i], dy[i], dz[i]};
+                if (placed[adj.x][adj.y][adj.z]) {
+                    uf.unite(f(p), f(adj));
+                }
             }
         }
+        if ((uf.size(f(p)) != cnt + 1) && !high) b.flip();
+        b.fill({0, -1, 0});
+        if ((uf.size(f(p)) == cnt + 1) && high) b.flip();
     }
-    cerr << cnt << endl;
 
     while(b.pos.x > 0) b.smove({-(min(b.pos.x, 15)), 0, 0});
     while(b.pos.z > 0) b.smove({0, 0, -min(b.pos.z, 15)});
     while(b.pos.y > 0) b.smove({0, -min(b.pos.y, 15), 0});
+    if (high) b.flip();
     b.halt();
-
-    assert(NUM == cnt);
 
     return 0;
 }
