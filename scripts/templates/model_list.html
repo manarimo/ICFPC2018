@@ -1,0 +1,25 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Model List</h1>
+<div>
+    <table>
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Link</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for model in models %}
+    <tr>
+        <td>{{ model['name'] }}</td>
+        <td><a href="{{ url_for('model_summary', name=model['name']) }}">Summary</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
