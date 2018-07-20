@@ -7,7 +7,7 @@ CREATE TABLE `tblmodel` (
   body LONGBLOB,
   PRIMARY KEY (id),
   INDEX name_index (`name`)
-);
+) DEFAULT CHARSET utf8mb4;
 
 CREATE TABLE `tbltrace` (
   id INT AUTO_INCREMENT,
@@ -16,4 +16,5 @@ CREATE TABLE `tbltrace` (
   score BIGINT,
   PRIMARY KEY (id),
   INDEX score_index (score)
-);
+) DEFAULT CHARSET utf8mb4;
+
