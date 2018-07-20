@@ -1,0 +1,10 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Model {{ name }}</h1>
+<div>
+    <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
+</div>
+{% endblock %}
