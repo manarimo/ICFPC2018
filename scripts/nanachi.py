@@ -1,6 +1,7 @@
 # メイドインアビスをみて
 
-from flask import Flask, render_template, make_response, request, redirect, url_for
+from flask import Flask, render_template, make_response, send_from_directory, request, redirect, url_for
+from flask_cors import CORS
 from db import get_connection
 import const
 import logging
@@ -8,7 +9,13 @@ import register_trace
 
 
 app = Flask(__name__, static_url_path="/static")
+CORS(app)
 connection = get_connection()
+
+
+@app.route("/assets/<path:path>")
+def assets(path):
+    return send_from_directory(const.root / 'official-tools' / 'assets', path)
 
 
 @app.route("/traces/register", methods=["POST"])

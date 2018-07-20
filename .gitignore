@@ -1,4 +1,5 @@
 assets
+!official-tools/assets
 .idea
 venv
 **/__pycache__
