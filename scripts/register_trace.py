@@ -3,9 +3,7 @@ from pathlib import Path
 from db import get_connection
 
 
-def register(name: str, nbt_path: Path, energy: int):
-    with nbt_path.open("rb") as f:
-        blob = f.read()
+def register(name: str, blob: bytes, energy: int):
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT id FROM tblmodel WHERE name=%s", (name,))
@@ -25,7 +23,9 @@ def main():
     parser.add_argument("nobita", type=Path, help="nbt file")
     parser.add_argument("energy", type=int, help="energy. use official checker to calculate!")
     args = parser.parse_args()
-    trace_id = register(args.model_name, args.nobita, args.energy)
+    with args.nobita.open("rb") as f:
+        blob = f.read()
+    trace_id = register(args.model_name, blob, args.energy)
     print("registered trace_id: {}".format(trace_id))
 
 
