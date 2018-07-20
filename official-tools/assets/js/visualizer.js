@@ -553,6 +553,11 @@ function initVisualizer(config) {
             .catch((err) => console.log(err));
     }
 
+    function setRotation(rotX, rotY) {
+        objs.rotation.x = rotX;
+        objs.rotation.y = rotY;
+    }
+
     // Controls
     function onKeyPress (e) {
         if (e.key == 'r') {
@@ -802,6 +807,6 @@ function initVisualizer(config) {
             setMatrixFn: setMatrixFn,
             fillMatrix: fillMatrix, voidMatrix: voidMatrix,
             botAdd: botAdd, botRem: botRem, botMove: botMove,
-            render: render, postImage: postImage}
+            render: render, postImage: postImage, setRotation: setRotation}
 
 }
