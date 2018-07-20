@@ -14,7 +14,7 @@ def main():
         name = "LA{:03}".format(i)
         model_file = model_dir / "{}_tgt.mdl".format(name)
         print(model_file)
-        with open(model_file, 'rb') as f:
+        with model_file.open('rb') as f:
             data = f.read()
         cursor.execute("INSERT INTO tblmodel (name, body) VALUES(%s, %s)", (name, data))
 
