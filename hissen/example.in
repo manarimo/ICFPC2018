@@ -1,0 +1,15 @@
+wait
+flip
+smove 15 0 0
+lmove 0 5 0 0 0 5
+fission 1 0 0 0
+fill 0 1 0
+fill 0 1 0
+smove 0 0 -1
+smove 0 0 -2
+fusionp 1 0 -1
+fusions -1 0 1
+lmove 0 0 -4 0 -5 0
+smove -15 0 0
+flip
+halt
