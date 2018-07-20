@@ -6,6 +6,8 @@ const int RMAX = 250;
 bool field[RMAX][RMAX][RMAX]; // x, y, z
 int R, NUM;
 
+bool high = false;
+
 struct P {
     int x, y, z;
 };
@@ -36,6 +38,7 @@ struct bot {
     }
 
     void flip() {
+        high = !high;
         cout << "flip" << '\n';
     }
 
@@ -107,38 +110,38 @@ void input() {
 int main() {
     input();
 
-    int cnt = 0;
+    queue<P> q;
+    for (int y = 0; y < R; ++y) {
+        for (int x = 0; x < R; ++x) {
+            for (int z = 0; z < R; ++z) {
+                if (field[x][y][z]) {
+                    q.push({x, y, z});
+                }
+            }
+        };
+    }
 
     bot b = bot {{0, 0, 0}, {}};
 
-    b.flip();
-    b.smove({1, 0, 0});
-    b.lmove({0, 1, 0}, {0, 0, 1});
+    b.smove({0, 1, 0});
 
-    int dz = 1;
-    while (b.pos.y < R - 1) {
-        int dx = 1;
-        while((dz > 0 && b.pos.z < R - 1) || (dz < 0 && b.pos.z > 0)) {
-            while ((dx > 0 && b.pos.x < R - 1) || (dx < 0 && b.pos.x > 0)) {
-                if (field[b.pos.x][b.pos.y - 1][b.pos.z]) {
-                    b.fill({0, -1, 0});
-                    if (++cnt == NUM) goto X;
-                }
-                b.smove({dx, 0, 0});
-            }
-            b.smove({0, 0, dz});
-            dx = -dx;
+    while(!q.empty()) {
+        auto p = q.front(); q.pop();
+        while (p.y + 1 > b.pos.y) {
+            b.smove({0, 1, 0});
+            if (b.pos.y > 1 && !high) b.flip();
         }
-        b.smove({0, 1, 0});
-        dz = -dz;
+        while(p.x - b.pos.x > 0) b.smove({min(p.x - b.pos.x, 15), 0, 0});
+        while(p.x - b.pos.x < 0) b.smove({-min(b.pos.x - p.x, 15), 0, 0});
+        while(p.z - b.pos.z > 0) b.smove({0, 0, min(p.z - b.pos.z, 15)});
+        while(p.z - b.pos.z < 0) b.smove({0, 0, -min(b.pos.z - p.z, 15)});
+        b.fill({0, -1, 0});
     }
-    X:
-    if (b.pos.y != R - 1) b.smove({0, 1, 0});
 
     while(b.pos.x > 0) b.smove({-(min(b.pos.x, 15)), 0, 0});
     while(b.pos.z > 0) b.smove({0, 0, -min(b.pos.z, 15)});
     while(b.pos.y > 0) b.smove({0, -min(b.pos.y, 15), 0});
-    b.flip();
+    if (high) b.flip();
     b.halt();
 
     return 0;
