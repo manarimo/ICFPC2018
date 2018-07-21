@@ -22,7 +22,7 @@
 * kawatea/mutation
 * kawatea/simple_division
 * kawatea/yufmodoki
-* yuusti/大体正の点数を取る (Get Positive Score in Most Cases)
+* yuusti/大体正の点数を取る (Get Positive Score in Most Cases): 20台で下から貪欲に作成、groundedならharmonicsをlowに切り替える。y軸ごとにFillの必要回数を計算してロボット割り当てるx軸を変える。
 * mkut/splattershotjr: (lightning) 全体では Grounded 状態を維持をして、分割した空間をそれぞれロボットに担当させてほぼ貪欲に構成した。
 
 ## Tools
