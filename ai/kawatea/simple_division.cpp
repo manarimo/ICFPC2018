@@ -705,6 +705,7 @@ int main() {
         }
         
         reverse(bots.begin(), bots.end());
+        reverse(voxels.begin(), voxels.end());
         
         pair<long long, vector <command>> tmp = calc(bots, voxels, 0);
         if (tmp.first < best_energy) {
@@ -727,6 +728,7 @@ int main() {
         }
         
         reverse(bots.begin(), bots.end());
+        reverse(voxels.begin(), voxels.end());
         
         pair<long long, vector <command>> tmp = calc(bots, voxels, 1);
         if (tmp.first < best_energy) {
