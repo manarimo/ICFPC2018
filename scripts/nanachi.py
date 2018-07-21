@@ -24,6 +24,18 @@ def assets(path):
     return send_from_directory(const.root / 'official-tools' / 'assets', path)
 
 
+@app.route("/api/pending_traces")
+def pending_traces():
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+                   "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
+                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id WHERE tbltrace_metadata.energy IS NULL")
+    traces = cursor.fetchall()
+    cursor.close()
+    connection.commit()
+    return Response(json.dumps({"traces": traces}), mimetype="application/json")
+
+
 @app.route("/best_traces", methods=["GET", "POST"])
 def best_traces():
     traces = {}
