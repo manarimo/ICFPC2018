@@ -43,6 +43,24 @@ struct PointD {
     }
 };
 
+struct AStarPoint {
+    int x, y, z, c, ec;
+    AStarPoint() : x(0), y(0), z(0), c(0), ec(0) {}
+    AStarPoint(int x, int y, int z, int c, int ec) : x(x), y(y), z(z), c(c), ec(ec) {}
+    AStarPoint(Point p, int c, int ec) : x(p.x), y(p.y), z(p.z), c(c), ec(ec) {}
+    bool operator<(const AStarPoint& a) const {
+        if (ec != a.ec) return ec > a.ec;
+        if (c != a.c) return c > a.c;
+        if (x != a.x) return x < a.x;
+        if (y != a.y) return y < a.y;
+        if (z != a.z) return z < a.z;
+        return false;
+    }
+    Point to_point() {
+        return Point(x, y, z);
+    }
+};
+
 string make_command_3(string name, int arg1, int arg2, int arg3) {
     stringstream ss;
     ss << name << " " << arg1 << " " << arg2 << " " << arg3;
@@ -54,41 +72,54 @@ string make_command_6(string name, int arg1, int arg2, int arg3, int arg4, int a
     ss << name << " " << arg1 << " " << arg2 << " " << arg3 << " " << arg4 << " " << arg5 << " " << arg6;
     return ss.str();
 }
+
+int man_d(Point& a, Point& b) {
+    return abs(abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) - 1);
+}
+
 vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s, Point& t, bool fill, Point& next) {
     map<Point, Point> prev;
     map<Point, string> command;
-    queue<Point> q;
-    q.push(s);
+    priority_queue<AStarPoint> q;
+    AStarPoint init(s, 0, man_d(s, t));
+    q.push(init);
     prev[s] = s;
     command[s] = "";
+
+    map<Point, string> atari;
+    if (fill) {
+        for (int i = 0; i < 18; i++) {
+            int dx = nd_dx[i], nx = t.x + dx;
+            int dy = nd_dy[i], ny = t.y + dy;
+            int dz = nd_dz[i], nz = t.z + dz;
+            atari[Point(nx, ny, nz)] = make_command_3("fill", -dx, -dy, -dz);
+        }
+    } else {
+        atari[t] = "";
+    }
     // cerr << "s: " << s.x << "," << s.y << "," << s.z << endl;
     // cerr << "t: " << t.x << "," << t.y << "," << t.z << endl;
     // cerr << (fill ? "fill" : "nofill") << endl;
+    bool found = false;
     while (q.size()) {
-        Point p = q.front(); q.pop();
+        AStarPoint p = q.top(); q.pop();
         // cerr << p.x << "," << p.y << "," << p.z << endl;
-        if (fill) {
-            for (int i = 0; i < 18; i++) {
-                int dx = nd_dx[i], nx = p.x + dx;
-                int dy = nd_dy[i], ny = p.y + dy;
-                int dz = nd_dz[i], nz = p.z + dz;
-                if (nx == t.x && ny == t.y && nz == t.z) {
-                    vector<string> ret;
-                    ret.push_back(make_command_3("fill", dx, dy, dz));
-                    Point tp(p);
-                    while (tp.x != s.x || tp.y != s.y || tp.z != s.z) {
-                        ret.push_back(command[tp]);
-                        tp = prev[tp];
-                    }
-                    reverse(ret.begin(), ret.end());
-                    next.x = p.x; next.y = p.y; next.z = p.z;
-                    return ret;
-                }
-            }
-        } else {
-            if (p.x == t.x && p.y == t.y && p.z == t.z) {
+        Point p_p = p.to_point();
+        if (atari.count(p_p)) {
+            if (fill) {
                 vector<string> ret;
-                Point tp(p);
+                ret.push_back(atari[p_p]);
+                Point tp(p_p);
+                while (tp.x != s.x || tp.y != s.y || tp.z != s.z) {
+                    ret.push_back(command[tp]);
+                    tp = prev[tp];
+                }
+                reverse(ret.begin(), ret.end());
+                next.x = p.x; next.y = p.y; next.z = p.z;
+                return ret;
+            } else {
+                vector<string> ret;
+                Point tp(p_p);
                 while (tp.x != s.x || tp.y != s.y || tp.z != s.z) {
                     ret.push_back(command[tp]);
                     tp = prev[tp];
@@ -97,6 +128,7 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
                 return ret;
             }
         }
+        if (found) continue;
         // smove
         for (int i = 0; i < 6; i++) {
             for (int j = 1; j <= 15; j++) {
@@ -111,9 +143,12 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
                 }
                 Point np(nx, ny, nz);
                 if (!prev.count(np)) {
-                    prev[np] = p;
+                    prev[np] = p_p;
                     command[np] = make_command_3("smove", dx, dy, dz);
-                    q.push(np);
+                    q.push(AStarPoint(np, p.c + 1, p.c + 1 + man_d(np, t)));
+                    if (atari.count(np)) {
+                        found = true;
+                    }
                 }
             }
         }
@@ -142,9 +177,12 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
                         }
                         Point np(nx2, ny2, nz2);
                         if (!prev.count(np)) {
-                            prev[np] = p;
+                            prev[np] = p_p;
                             command[np] = make_command_6("lmove", dx1, dy1, dz1, dx2, dy2, dz2);
-                            q.push(np);
+                            q.push(AStarPoint(np, p.c + 1, p.c + 1 + man_d(np, t)));
+                            if (atari.count(np)) {
+                                found = true;
+                            }
                         }
                     }
                 }
@@ -286,7 +324,11 @@ int main() {
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < paths[i].size(); j++) {
             if (paths[i][j].size() == 1 && paths[i][j][0] == "> <") {
-                cerr << "> <";
+                cerr << "> <" << endl;
+                cerr << "bot-" << i << endl;
+                for (int k = 0; k <= j; k++) {
+                    cerr << tasks[i][k].x << " " << tasks[i][k].y << " " << tasks[i][k].z << endl;
+                }
                 return 1;
             }
         }
