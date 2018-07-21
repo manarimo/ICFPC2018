@@ -14,6 +14,7 @@ import api
 
 
 app = Flask(__name__, static_url_path="/static")
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 CORS(app)
 connection = get_connection()
 
