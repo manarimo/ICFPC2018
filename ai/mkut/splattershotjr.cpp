@@ -271,6 +271,11 @@ vector<vector<string> > computePath(const int R, const int W, vector<PointD> tas
 
 bool field[256][256][256]; // x, y, z
 int dist[256][256][256];
+int sum[256][256][256];
+int dp_x[256][21][2];
+int dp_z[256][21][2];
+int voxels_x[256][256];
+int voxels_z[256][256];
 
 int main() {
     unsigned char c;
@@ -293,7 +298,69 @@ int main() {
         }
     }
 
+    int N = min(20, R);
+
     cerr << "読み込みおわり" << endl;
+
+    // == kawatea slice == /
+    for (int i = 0; i < R; i++) {
+        for (int j = 0; j < R; j++) {
+            for (int k = 0; k < R; k++) {
+                sum[i][j + 1][k + 1] = sum[i][j + 1][k] + sum[i][j][k + 1] - sum[i][j][k];
+                if (field[j][i][k]) sum[i][j + 1][k + 1]++;
+            }
+        }
+    }
+
+    for (int i = 0; i < R; i++) {
+        for (int j = 0; j < R; j++) {
+            for (int k = j; k < R; k++) {
+                voxels_x[j][k] += sum[i][k + 1][R] - sum[i][j][R] - sum[i][k + 1][0] + sum[i][j][0];
+                voxels_z[j][k] += sum[i][R][k + 1] - sum[i][R][j] - sum[i][0][k + 1] + sum[i][0][j];
+            }
+        }
+    }
+
+    for (int i = 0; i <= R; i++) {
+        for (int j = 0; j <= N; j++) {
+            dp_x[i][j][0] = 1e9;
+            dp_z[i][j][0] = 1e9;
+        }
+    }
+
+    dp_x[0][0][0] = 0;
+    dp_z[0][0][0] = 0;
+
+    for (int i = 0; i < R; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = i + 1; k <= R; k++) {
+                if (max(dp_x[i][j][0], voxels_x[i][k - 1]) < dp_x[k][j + 1][0]) {
+                    dp_x[k][j + 1][0] = max(dp_x[i][j][0], voxels_x[i][k - 1]);
+                    dp_x[k][j + 1][1] = i;
+                }
+                if (max(dp_z[i][j][0], voxels_z[i][k - 1]) < dp_z[k][j + 1][0]) {
+                    dp_z[k][j + 1][0] = max(dp_z[i][j][0], voxels_z[i][k - 1]);
+                    dp_z[k][j + 1][1] = i;
+                }
+            }
+        }
+    }
+    // == kawatea slice == /
+
+    // とりあえずxで雑に分割
+    vector<int> x_range(N + 1);
+//    for (int i = 0; i < N; i++) {
+//        x_range[i + 1] = R * (i + 1) / N;
+//    }
+
+    x_range[N] = R;
+    for (int i = N, last = R; i > 0; i--) {
+        int parent = dp_x[last][i][1];
+        x_range[i - 1] = parent;
+        last = parent;
+    }
+
+    // for (int i = 0; i < N + 1; i++) cerr << x_range[i] << endl;
 
     {
         queue<Point> q;
@@ -325,14 +392,6 @@ int main() {
     }
 
     cerr << "距離計算おわり" << endl;
-
-    int N = min(20, R);
-
-    // とりあえずxで雑に分割
-    vector<int> x_range(N + 1);
-    for (int i = 0; i < N; i++) {
-        x_range[i + 1] = R * (i + 1) / N;
-    }
 
     //準備
     for (int i = 0; i < N - 1; ) {
