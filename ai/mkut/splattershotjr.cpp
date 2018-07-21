@@ -77,7 +77,37 @@ int man_d(Point& a, Point& b) {
     return abs(abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) - 1);
 }
 
-vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s, Point& t, bool fill, Point& next) {
+vector<vector<vector<char> > > alive_zone(const int R, int W, vector<vector<vector<char> > >& field, Point& filled) {
+    vector<vector<vector<char> > > alive(W, vector<vector<char> >(R, vector<char>(R)));
+    queue<Point> q;
+    q.push(Point(0, 0, 0));
+    alive[0][0][0] = 1;
+
+    while (q.size()) {
+        Point p = q.front(); q.pop();
+        // cerr << p.x << "," << p.y << "," << p.z << endl;
+
+        for (int i = 0; i < 6; i++) {
+            int dx = adj_dx[i], nx = p.x + dx;
+            int dy = adj_dy[i], ny = p.y + dy;
+            int dz = adj_dz[i], nz = p.z + dz;
+            if (nx < 0 || nx >= W || ny < 0 || ny >= R || nz < 0 || nz >= R) {
+                continue;
+            }
+            if (field[nx][ny][nz] || (filled.x == nx && filled.y == ny && filled.z == nz)) {
+                continue;
+            }
+            if (!alive[nx][ny][nz]) {
+                Point np(nx, ny, nz);
+                alive[nx][ny][nz] = 1;
+                q.push(np);
+            }
+        }
+    }
+    return alive;
+}
+
+vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s, Point& t, bool fill, Point& next, vector<PointD>& tasks, int taskId) {
     map<Point, Point> prev;
     map<Point, string> command;
     priority_queue<AStarPoint> q;
@@ -87,15 +117,27 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
     command[s] = "";
 
     map<Point, string> atari;
+    vector<vector<vector<char> > > alive_zone_after = alive_zone(R, W, field, t);
+    for (int i = taskId + 1; i < tasks.size(); i++) {
+        if (!alive_zone_after[tasks[i].x][tasks[i].y][tasks[i].z]) {
+            return vector<string>(1, "> <");
+        }
+    }
     if (fill) {
         for (int i = 0; i < 18; i++) {
             int dx = nd_dx[i], nx = t.x + dx;
             int dy = nd_dy[i], ny = t.y + dy;
             int dz = nd_dz[i], nz = t.z + dz;
-            atari[Point(nx, ny, nz)] = make_command_3("fill", -dx, -dy, -dz);
+            Point np(nx, ny, nz);
+            if (nx >= 0 && nx < W && ny >= 0 && ny < R && nz >= 0 && nz < R && alive_zone_after[nx][ny][nz]) {
+                atari[np] = make_command_3("fill", -dx, -dy, -dz);
+            }
         }
     } else {
         atari[t] = "";
+    }
+    if (!atari.size()) {
+        return vector<string>(1, "> <");
     }
     // cerr << "s: " << s.x << "," << s.y << "," << s.z << endl;
     // cerr << "t: " << t.x << "," << t.y << "," << t.z << endl;
@@ -194,19 +236,33 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
     return vector<string>(1, "> <");
 }
 
-vector<vector<string> > computePath(const int R, const int W, vector<PointD>& tasks) {
+vector<vector<string> > computePath(const int R, const int W, vector<PointD> tasks, vector<PointD>& newTasks) {
     vector<vector<string> > ret;
     vector<vector<vector<char> > > field(W, vector<vector<char> >(R, vector<char>(R)));
     Point current(0, 0, 0);
+    vector<PointD> additionalTasks;
+    int renzoku = 0;
     for (int i = 0; i < tasks.size() + 1; i++) {
-        cerr << ".";
         Point t = i == tasks.size() ? Point(0, 0, 0) : tasks[i].to_point();
-        vector<string> commands = bfs(R, W, field, current, t, i < tasks.size(), current);
-        if (commands.size()) {
-            ret.push_back(commands);
-        }
-        if (i < tasks.size()) {
-            field[tasks[i].x][tasks[i].y][tasks[i].z] = 1;
+        vector<string> commands = bfs(R, W, field, current, t, i < tasks.size(), current, tasks, i);
+        if (commands.size() == 1 && commands[0] == "> <") {
+            tasks.push_back(tasks[i]);
+            cerr << "*";
+            renzoku++;
+            if (renzoku >= tasks.size()) {
+                ret.push_back(vector<string>(1, "> <"));
+                return ret;
+            }
+        } else {
+            if (commands.size()) {
+                ret.push_back(commands);
+                newTasks.push_back(tasks[i]);
+            }
+            if (i < tasks.size()) {
+                field[tasks[i].x][tasks[i].y][tasks[i].z] = 1;
+            }
+            cerr << ".";
+            renzoku = 0;
         }
     }
     cerr << endl;
@@ -311,9 +367,10 @@ int main() {
 
     cerr << "前計算中..." << endl;
     vector<vector<vector<string> > > paths;
+    vector<vector<PointD> > newTasks(N);
     for (int i = 0; i < N; i++) {
         cerr << "bot-" << i << "/" << N << "(" << tasks[i].size() << ")" << endl;
-        paths.push_back(computePath(R, x_range[i + 1] - x_range[i], tasks[i]));
+        paths.push_back(computePath(R, x_range[i + 1] - x_range[i], tasks[i], newTasks[i]));
     }
 
     cerr << "前計算した" << endl;
@@ -321,18 +378,18 @@ int main() {
     //     cerr << paths[i].size() << endl;
     // }
 
-    for (int i = 0; i < N; i++) {
-        for (int j = 0; j < paths[i].size(); j++) {
-            if (paths[i][j].size() == 1 && paths[i][j][0] == "> <") {
-                cerr << "> <" << endl;
-                cerr << "bot-" << i << endl;
-                for (int k = 0; k <= j; k++) {
-                    cerr << tasks[i][k].x << " " << tasks[i][k].y << " " << tasks[i][k].z << endl;
-                }
-                return 1;
-            }
-        }
-    }
+//    for (int i = 0; i < N; i++) {
+//        for (int j = 0; j < paths[i].size(); j++) {
+//            if (paths[i][j].size() == 1 && paths[i][j][0] == "> <") {
+//                cerr << "> <" << endl;
+//                cerr << "bot-" << i << endl;
+//                for (int k = 0; k <= j; k++) {
+//                    cerr << tasks[i][k].x << " " << tasks[i][k].y << " " << tasks[i][k].z << endl;
+//                }
+//                return 1;
+//            }
+//        }
+//    }
 
     vector<int> progress1(N);
     vector<int> progress2(N);
@@ -353,7 +410,7 @@ int main() {
                 continue;
             } else if (p1 != paths[i].size() - 1 && p2 == paths[i][p1].size() - 1) {
                 // fill
-                PointD task = tasks[i][progress1[i]];
+                PointD task = newTasks[i][progress1[i]];
                 if (reachable[task.x + x_range[i]][task.y][task.z]) {
                     cout << paths[i][p1][p2] << endl;
                     progress2[i]++;
