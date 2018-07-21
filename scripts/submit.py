@@ -44,8 +44,17 @@ def do_submit(filepath: Path):
 def main():
     parser = ArgumentParser()
     parser.add_argument("zipfile", type=Path)
+    parser.add_argument("submit_type", default="traces")
     args = parser.parse_args()
-    do_submit(args.zipfile)
+
+    if args.submit_type == 'traces':
+        do_submit(args.zipfile)
+    elif args.submit_type == 'sourcecode':
+        digest, public_url = upload_to_s3(args.zipfile)
+        print("Uploaded the zipfile to S3.")
+        print("URL: {}".format(public_url))
+        print("SHA256 digest: {}".format(digest))
+        print("Don't forget to submit these info on the contest site!")
 
 
 if __name__ == '__main__':
