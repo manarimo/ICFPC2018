@@ -7,8 +7,6 @@ fusionp dx dy dz
 fusions dx dy dz
 fission dx dy dz m
 fill dx dy dz
-
-# smove x|y|z len
-# lmove x|y|z len1 x|y|z len2
-# fusionp id
-# fusions id
+void dx dy dz
+gfill ndx ndy ndz fdx fdy fdz
+gvoid ndx ndy ndz fdx fdy fdz
