@@ -269,6 +269,9 @@ vector<vector<string> > computePath(const int R, const int W, vector<PointD> tas
     return ret;
 }
 
+bool field[256][256][256]; // x, y, z
+int dist[256][256][256];
+
 int main() {
     unsigned char c;
     cin.read((char *)&c, 1);
@@ -277,7 +280,6 @@ int main() {
     const int bytes = (R * R * R + 7) / 8;
     cerr << "Reading " << bytes << " bytes" << endl;
 
-    bool field[R][R][R]; // x, y, z
     {
         int x = 0, y = 0, z = 0;
         for (int i = 0; i < bytes; i++) {
@@ -291,7 +293,8 @@ int main() {
         }
     }
 
-    int dist[R][R][R];
+    cerr << "読み込みおわり" << endl;
+
     {
         queue<Point> q;
         q.push(Point(-1, -1, -1));
@@ -320,6 +323,8 @@ int main() {
             }
         }
     }
+
+    cerr << "距離計算おわり" << endl;
 
     int N = min(20, R);
 
@@ -359,10 +364,6 @@ int main() {
             }
         }
         sort(tasks[i].begin(), tasks[i].end());
-    }
-
-    for (int i = 0; i < tasks[17].size(); i++) {
-        // cerr << tasks[17][i].x << " " << tasks[17][i].y << " " << tasks[17][i].z << endl;
     }
 
     cerr << "前計算中..." << endl;
