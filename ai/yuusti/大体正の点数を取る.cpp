@@ -207,6 +207,68 @@ void moveBots(vector<bot> &bots, int i, P dst) {
     }
 }
 
+vector<int> calcBlockSum(int y) {
+    vector<int> block(R), sum(R + 1);
+    for (int x = 0; x < R; ++x) {
+        for (int z = 0; z < R; ++z) {
+            block[x] += field[x][y][z];
+        }
+        sum[x + 1] = sum[x] + block[x];
+    }
+    vector<vector<int>> dp(R + 1, vector<int>(SEED + 1, 1e9)), prv(R + 1, vector<int>(SEED + 1, 0));
+    dp[0][0] = 0;
+
+    for (int i = 0; i < R; ++i) {
+        for (int j = 0; j < SEED; ++j) {
+            for (int k = i + 1; k <= R; ++k) {
+                if (max(dp[i][j], sum[k] - sum[i]) < dp[k][j + 1]) {
+                    dp[k][j + 1] = max(dp[i][j], sum[k] - sum[i]);
+                    prv[k][j + 1] = i;
+                }
+            }
+        }
+    }
+
+    vector<int> res;
+    int r = SEED, p = R;
+    while (r > 0) {
+        p = prv[p][r];
+        res.push_back(p);
+//        cerr << "p=" << p << endl;
+        r--;
+    }
+    reverse(res.begin(), res.end());
+    res.push_back(R);
+
+//    for (int i = 0; i <= R; ++i) {
+//        cerr << "i=" << i << ", sum=" << sum[i] << endl;
+//    }
+//    for (int i = 0; i < SEED; ++i) {
+//        cerr << "border=" << res[i] << endl;
+//    }
+
+    return res;
+}
+
+vector<int> addNext(vector<queue<P>> &q, int y) {
+    cerr << "finding next points" << endl;
+    auto range = calcBlockSum(y);
+
+    for (int x = 0; x < R; ++x) {
+        for (int z = 0; z < R; ++z) {
+            if (field[x][y][z]) {
+                for (int i = 1; i <= SEED; ++i) {
+                    if (x < range[i]) {
+                        q[i - 1].push({x, y, z});
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    return range;
+}
+
 int main() {
     input();
 
@@ -217,14 +279,10 @@ int main() {
     for (int i = 1; i < SEED; ++i) seeds[i] = 1;
     bots[0] = bot {{0, 0, 0}, 0, seeds, true};
 
-    int w = R / SEED, wl = R % SEED;
-    vector<int> basew(SEED);
-    for (int i = 0; i < SEED; ++i) {
-        basew[i] = w;
-        if (i < wl) ++basew[i];
-        if (i > 0) basew[i] += basew[i - 1];
-    }
     moveBots(bots, 0, {0, 1, 0});
+
+    vector<queue<P>> q(SEED);
+    auto basew = addNext(q, 0);
 
     cerr << "fission" << endl;
     for (int i = 0; i < SEED - 1; ++i) {
@@ -233,42 +291,38 @@ int main() {
             bots[j].wait();
         }
         bots[i + 1] = bots[i].fission({0, 0, 1}, SEED - 2 - i);
-        moveBots(bots, i + 1, {basew[i], 1, bots[i].pos.z});
-    }
-
-    vector<queue<P>> q(SEED);
-    for (int y = 0; y < R; ++y) {
-        for (int x = 0; x < R; ++x) {
-            for (int z = 0; z < R; ++z) {
-                if (field[x][y][z]) {
-                    for (int i = 0; i < SEED; ++i) {
-                        if (x < basew[i]) {
-                            q[i].push({x, y, z});
-                            break;
-                        }
-                    }
-                }
-            }
-        };
+        moveBots(bots, i + 1, {basew[i], 1, bots[i + 1].pos.z});
     }
 
     cerr << "block" << endl;
     int cnt = 0;
     int curY = 1;
-    while (1) {
+    while (cnt < NUM) {
         bool ok = true;
-        bool allEmpty = true;
         for (int i = 0; i < SEED; ++i) {
-            allEmpty &= q[i].empty();
-            if (!q[i].empty() && q[i].front().y + 1 == curY) ok = false;
+            ok &= q[i].empty();
         }
-        if (allEmpty) break;
 
         if (ok) {
-//            cerr << "move y to " << curY + 1 << endl;
+            auto range = addNext(q, curY);
+            queue<int> nxt;
+            vector<int> done(SEED);
             for (int i = 0; i < SEED; ++i) {
-                bots[i].smove({0, 1, 0});
+                nxt.push(i);
             }
+            while (!nxt.empty()) {
+//                cerr <<  bots[i].pos << " to " << P{range[i], curY + 1, bots[i].pos.z} << endl;
+                int i = nxt.front();
+                nxt.pop();
+                if (i + 1 < SEED && !done[i+1] && bots[i+1].pos.x <= range[i]) {
+                    nxt.push(i);
+                    continue;
+                }
+                moveBots(bots, i, {range[i], curY, bots[i].pos.z});
+                moveBots(bots, i, {range[i], curY + 1, bots[i].pos.z});
+                done[i] = 1;
+            }
+
             ++curY;
         } else {
 //            cerr << "place" << endl;
