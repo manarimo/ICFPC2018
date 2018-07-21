@@ -728,7 +728,7 @@ int main() {
     read_input();
     
     vector <int> mutations = {0};
-    for (int i = 1; i < R; i++) {
+    for (int i = 1; i < R; i += 2) {
         if (sum[i][R][R] == 0) {
             mutations.push_back(i);
             break;
