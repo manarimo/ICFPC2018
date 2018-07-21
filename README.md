@@ -12,7 +12,7 @@
 * Osamu Koga (@osa_k)
 * Yuki Kawata (@kawatea03)
 * Yosuke Yano (@y3eadgbe)
-* Masta Kida (@mirai_towa)
+* mkut (@mirai_towa)
 * Yu Fujikake (@yuusti)
 * Shunsuke Ohashi (@pepsin_amylase)
 
@@ -23,11 +23,11 @@
 * kawatea/simple_division
 * kawatea/yufmodoki
 * yuusti/大体正の点数を取る (Get Positive Score in Most Cases)
-* mkut/splattershotjr
+* mkut/splattershotjr: (lightning) 全体では Grounded 状態を維持をして、分割した空間をそれぞれロボットに担当させてほぼ貪欲に構成した。
 
 ## Tools
 * autoscorer
-* hissen
+* hissen: trace assembler
 * model-analyzer
 * official-tools
 * saverwing 
