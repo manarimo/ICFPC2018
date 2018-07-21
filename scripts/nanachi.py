@@ -92,7 +92,7 @@ def trace_blob(trace_id: int):
 def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
-        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, "
+        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
         "tm.submit_time AS submit_time "
         "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
         "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
@@ -123,11 +123,12 @@ def model_blob(name: str):
 def model_summary(name: str):
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
-        "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
-        "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy IS NULL, tbltrace_metadata.energy",
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
+        "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy",
         (name,))
     tracerows = tracecursor.fetchall()
+    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
     tracecursor.close()
     connection.commit()
 
