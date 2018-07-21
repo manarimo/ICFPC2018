@@ -53,7 +53,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["energy"]))
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]))
 
 
 @app.route("/traces/register", methods=["POST"])
