@@ -40,11 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const response = await fetch(`${base}/traces/register`, {
                     method: 'POST',
                     body: formData,
-                });
-                if (response.ok) {
+                }).json();
+                if (response.status === 'success') {
                     stdout.innerHTML += '<p style="color: green">Upload succeeded!</p>';
                 } else {
-                    const err = await response.text();
+                    const err = response.message;
                     stdout.innerHTML += `<p style="color: red">Upload failed: ${err}</p>`;
                 }
             } catch (err) {
