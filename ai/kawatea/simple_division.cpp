@@ -12,8 +12,17 @@ struct position {
     int y;
     int z;
     
+    position() {}
     position(int x, int y, int z) : x(x), y(y), z(z) {}
 };
+
+position operator+(const position& p1, const position& p2) {
+    return position(p1.x + p2.x, p1.y + p2.y, p1.z + p2.z);
+}
+
+position operator-(const position& p1, const position& p2) {
+    return position(p1.x - p2.x, p1.y - p2.y, p1.z - p2.z);
+}
 
 struct rectangle {
     int x1;
@@ -63,6 +72,24 @@ int manhattan(int dx, int dy, int dz) {
     return abs(dx) + abs(dy) + abs(dz);
 }
 
+int manhattan(const position& p) {
+    return manhattan(p.x, p.y, p.z);
+}
+
+int chebyshev(int dx, int dy, int dz) {
+    return max({abs(dx), abs(dy), abs(dz)});
+}
+
+int chebyshev(const position& p) {
+    return chebyshev(p.x, p.y, p.z);
+}
+
+bool near(const position& p1, const position& p2) {
+    int md = manhattan(p1 - p2);
+    int cd = chebyshev(p1 - p2);
+    return md <= 2 && cd == 1;
+}
+
 void maintain(long long& energy, int bots) {
     energy += (hermonics ? 30 : 3) * R * R * R + 20 * bots;
 }
@@ -85,10 +112,18 @@ pair<int, string> smove(int dx, int dy, int dz) {
     return make_pair(2 * manhattan(dx, dy, dz), ss.str());
 }
 
+pair<int, string> smove(const position& p) {
+    return smove(p.x, p.y, p.z);
+}
+
 pair<int, string> lmove(int dx1, int dy1, int dz1, int dx2, int dy2, int dz2) {
     stringstream ss;
     ss << "lmove " << dx1 << " " << dy1 << " " << dz1 << " " << dx2 << " " << dy2 << " " << dz2;
     return make_pair(2 * (manhattan(dx1, dy1, dz1) + 2 + manhattan(dx2, dy2, dz2)), ss.str());
+}
+
+pair<int, string> lmove(const position& p1, const position& p2) {
+    return lmove(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
 }
 
 pair<int, string> fusionp(int dx, int dy, int dz) {
@@ -115,52 +150,126 @@ pair<int, string> fill(int dx, int dy, int dz) {
     return make_pair(12, ss.str());
 }
 
+pair<int, string> fill(const position& p) {
+    return fill(p.x, p.y, p.z);
+}
+
 void add_trace(long long& energy, vector <string>& traces, const pair<int, string>& trace) {
     energy += trace.first;
     traces.push_back(trace.second);
 }
 
 vector <pair<int, string>> get_moves(position& p1, const position& p2) {
+    bool fx = false, fy = false, fz = false;
+    position p = p2 - p1;
     vector <pair<int, string>> traces;
     
-    while (p1.y != p2.y) {
-        int dy = min(max(p2.y - p1.y, -15), 15);
-        p1.y += dy;
+    if (abs(p.x) % 15 > 0 && abs(p.x) % 15 <= 5) fx = true;
+    if (abs(p.y) % 15 > 0 && abs(p.y) % 15 <= 5) fy = true;
+    if (abs(p.z) % 15 > 0 && abs(p.z) % 15 <= 5) fz = true;
+    
+    if (fy && fx) {
+        int dy = min(max(p.y, -5), 5);
+        int dx = min(max(p.x, -5), 5);
+        fy = fx = false;
+        p.y -= dy;
+        p.x -= dx;
+        traces.push_back(lmove(0, dy, 0, dx, 0, 0));
+    } else if (fy && fz) {
+        int dy = min(max(p.y, -5), 5);
+        int dz = min(max(p.z, -5), 5);
+        fy = fz = false;
+        p.y -= dy;
+        p.z -= dz;
+        traces.push_back(lmove(0, dy, 0, 0, 0, dz));
+    }
+    
+    while (p.y != 0) {
+        int dy = min(max(p.y, -15), 15);
+        p.y -= dy;
         traces.push_back(smove(0, dy, 0));
     }
     
-    while (p1.x != p2.x) {
-        int dx = min(max(p2.x - p1.x, -15), 15);
-        p1.x += dx;
+    if (fx && fz) {
+        int dx = min(max(p.x, -5), 5);
+        int dz = min(max(p.z, -5), 5);
+        p.x -= dx;
+        p.z -= dz;
+        traces.push_back(lmove(dx, 0, 0, 0, 0, dz));
+    }
+    
+    while (p.x != 0) {
+        int dx = min(max(p.x, -15), 15);
+        p.x -= dx;
         traces.push_back(smove(dx, 0, 0));
     }
     
-    while (p1.z != p2.z) {
-        int dz = min(max(p2.z - p1.z, -15), 15);
-        p1.z += dz;
+    while (p.z != 0) {
+        int dz = min(max(p.z, -15), 15);
+        p.z -= dz;
         traces.push_back(smove(0, 0, dz));
     }
+    
+    p1 = p2;
     
     return traces;
 }
 
 vector <pair<int, string>> put_floor(const rectangle& rect, position& p, int floor) {
-    vector <pair<int, string>> traces;
+    long long best_energy;
+    position last = p;
+    vector <pair<int, string>> best_traces;
     
-    for (int i = rect.x1; i <= rect.x2; i++) {
-        for (int j = rect.z1; j <= rect.z2; j++) {
-            if (matrix[i][floor][j]) {
-                vector <pair<int, string>> moves = get_moves(p, position(i, floor + 1, j));
-                p.x = i;
-                p.y = floor + 1;
-                p.z = j;
-                traces.insert(traces.end(), moves.begin(), moves.end());
-                traces.push_back(fill(0, -1, 0));
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -1; dz <= 1; dz++) {
+            if (dx == 0 || dz == 0) continue;
+            
+            position now = p;
+            vector <position> positions;
+            vector <pair<int, string>> traces;
+            for (int x = (dx == 1 ? rect.x1 : rect.x2); rect.x1 <= x && x <= rect.x2; x += dx) {
+                bool found = false;
+                for (int z = (dz == 1 ? rect.z1 : rect.z2); rect.z1 <= z && z <= rect.z2; z += dz) {
+                    if (matrix[x][floor][z]) {
+                        found = true;
+                        positions.push_back(position(x, floor + 1, z));
+                    }
+                }
+                if (found) dz *= -1;
+            }
+            
+            for (int i = 0; i < positions.size(); i++) {
+                if (i + 1 < positions.size() && manhattan(positions[i] - positions[i + 1]) <= 1) {
+                    vector <pair<int, string>> moves = get_moves(now, positions[i + 1]);
+                    traces.insert(traces.end(), moves.begin(), moves.end());
+                    traces.push_back(fill((positions[i] - positions[i + 1]) + position(0, -1, 0)));
+                    traces.push_back(fill(0, -1, 0));
+                    if (i + 2 < positions.size() && manhattan(positions[i + 1] - positions[i + 2]) <= 1) {
+                        traces.push_back(fill((positions[i + 2] - positions[i + 1]) + position(0, -1, 0)));
+                        i += 2;
+                    } else {
+                        i++;
+                    }
+                } else {
+                    vector <pair<int, string>> moves = get_moves(now, positions[i]);
+                    traces.insert(traces.end(), moves.begin(), moves.end());
+                    traces.push_back(fill(0, -1, 0));
+                }
+            }
+            
+            long long energy = 0;
+            for (int i = 0; i < traces.size(); i++) energy += traces[i].first;
+            if (best_traces.empty() || traces.size() < best_traces.size() || (traces.size() == best_traces.size() && energy < best_energy)) {
+                last = now;
+                best_energy = energy;
+                best_traces = traces;
             }
         }
     }
     
-    return traces;
+    p = last;
+    
+    return best_traces;
 }
 
 pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& voxels, int direction) {
