@@ -75,8 +75,14 @@ def model_summary(name: str):
 
 @app.route("/model_list")
 def model_list():
+    get_list_sql = "SELECT m.name AS name, meta.r AS r, meta.fill_count AS fill_count, "\
+          "meta.num_components AS num_components, "\
+          "meta.largest_component_size AS largest_component_size, "\
+          "meta.max_depth AS max_depth, meta.num_void_spaces AS num_void_spaces "\
+          "FROM tblmodel m "\
+          "JOIN tblmodel_metadata meta ON m.id = meta.model_id"
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT name FROM tblmodel")
+    cursor.execute(get_list_sql)
     rows = cursor.fetchall()
     cursor.close()
     return render_template("model_list.html", models=rows)
