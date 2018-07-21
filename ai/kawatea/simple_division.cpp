@@ -1,3 +1,5 @@
+#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <sstream>
 #include <vector>
@@ -33,11 +35,96 @@ struct rectangle {
     rectangle(int x1, int x2, int z1, int z2) : x1(x1), x2(x2), z1(z1), z2(z2) {}
 };
 
+enum operation {
+    HALT,
+    WAIT,
+    FLIP,
+    SMOVE,
+    LMOVE,
+    FISSION,
+    FILL,
+    FUSIONP,
+    FUSIONS
+};
+
+struct command {
+    operation op;
+    int energy;
+    position p1;
+    position p2;
+    int m;
+    
+    command(operation op, int energy) : op(op), energy(energy) {}
+    command(operation op, int energy, const position& p1) : op(op), energy(energy), p1(p1) {}
+    command(operation op, int energy, const position& p1, const position& p2) : op(op), energy(energy), p1(p1), p2(p2) {}
+    command(operation op, int energy, const position& p1, int m) : op(op), energy(energy), p1(p1), m(m) {}
+};
+
+class UnionFind {
+    public:
+    UnionFind(int R) : R(R) {
+        int n = R * R * R + 1;
+        parent = (int *)malloc(sizeof(int) * n);
+        for (int i = 0; i < n; i++) parent[i] = -1;
+    }
+    
+    ~UnionFind() {
+        free(parent);
+    }
+    
+    int find(int x) {
+        if (parent[x] < 0) return x;
+        
+        return parent[x] = find(parent[x]);
+    }
+    
+    int find(int x, int y, int z) {
+        return find(x * R * R + y * R + z);
+    }
+    
+    int ground() {
+        return find(R, 0, 0);
+    }
+    
+    void unite(int x, int y) {
+        x = find(x);
+        y = find(y);
+        
+        if (x == y) return;
+        
+        if (parent[x] < parent[y]) {
+            parent[x] += parent[y];
+            parent[y] = x;
+        } else {
+            parent[y] += parent[x];
+            parent[x] = y;
+        }
+    }
+    
+    void unite(int x1, int y1, int z1, int x2, int y2, int z2) {
+        return unite(find(x1, y1, z1), find(x2, y2, z2));
+    }
+    
+    int size(int x) {
+        return -parent[find(x)];
+    }
+    
+    int size(int x1, int y1, int z1) {
+        return size(find(x1, y1, z1));
+    }
+    
+    private:
+    int R;
+    int *parent;
+};
+
 const int MAX_R = 250;
 const int MAX_B = 20;
+unsigned char buffer[MAX_R * MAX_R * MAX_R / 8];
 int R;
 bool hermonics;
 bool matrix[MAX_R][MAX_R][MAX_R];
+bool current[MAX_R][MAX_R][MAX_R];
 int sum[MAX_R + 1][MAX_R + 1][MAX_R + 1];
 int voxels_x[MAX_R][MAX_R];
 int voxels_z[MAX_R][MAX_R];
@@ -45,7 +132,6 @@ int dp_x[MAX_R + 1][MAX_B + 1][2];
 int dp_z[MAX_R + 1][MAX_B + 1][2];
 
 void read_input() {
-    unsigned char buffer[MAX_R * MAX_R * MAX_R / 8];
     cin.read((char*)buffer, 1);
     R = buffer[0];
     cin.read((char*)buffer, (R * R * R + 7) / 8);
@@ -64,6 +150,48 @@ void read_input() {
                 sum[i][j + 1][k + 1] = sum[i][j + 1][k] + sum[i][j][k + 1] - sum[i][j][k];
                 if (matrix[j][i][k]) sum[i][j + 1][k + 1]++;
             }
+        }
+    }
+}
+
+void output(const vector<command>& traces) {
+    for (int i = 0; i < traces.size(); i++) {
+        stringstream ss;
+        switch (traces[i].op) {
+            case HALT:
+            cout << "halt" << endl;
+            break;
+            case WAIT:
+            cout << "wait" << endl;
+            break;
+            case FLIP:
+            cout << "flip" << endl;
+            break;
+            case SMOVE:
+            ss << "smove " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z;
+            cout << ss.str() << endl;
+            break;
+            case LMOVE:
+            ss << "lmove " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z << " " << traces[i].p2.x << " " << traces[i].p2.y << " " << traces[i].p2.z;
+            cout << ss.str() << endl;
+            break;
+            case FUSIONP:
+            ss << "fusionp " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z;
+            cout << ss.str() << endl;
+            break;
+            case FUSIONS:
+            ss << "fusions " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z;
+            cout << ss.str() << endl;
+            break;
+            case FISSION:
+            ss << "fission " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z << " " << traces[i].m;
+            cout << ss.str() << endl;
+            break;
+            case FILL:
+            stringstream ss;
+            ss << "fill " << traces[i].p1.x << " " << traces[i].p1.y << " " << traces[i].p1.z;
+            cout << ss.str() << endl;
+            break;
         }
     }
 }
@@ -90,79 +218,110 @@ bool near(const position& p1, const position& p2) {
     return md <= 2 && cd == 1;
 }
 
+bool grounded(UnionFind& uf, const position& p) {
+    if (p.y == 0) return true;
+    static int dx[6] = {1, -1, 0, 0, 0, 0};
+    static int dy[6] = {0, 0, 1, -1, 0, 0};
+    static int dz[6] = {0, 0, 0, 0, 1, -1};
+    for (int i = 0; i < 6; i++) {
+        int x = p.x + dx[i];
+        int y = p.y + dy[i];
+        int z = p.z + dz[i];
+        if (uf.find(x, y, z) == uf.ground()) return true;
+    }
+    return false;
+}
+
+void fill(UnionFind& uf, const position& p) {
+    current[p.x][p.y][p.z] = true;
+    if (p.y == 0) {
+        uf.unite(uf.find(p.x, p.y, p.z), uf.ground());
+    } else {
+        static int dx[6] = {1, -1, 0, 0, 0, 0};
+        static int dy[6] = {0, 0, 1, -1, 0, 0};
+        static int dz[6] = {0, 0, 0, 0, 1, -1};
+        for (int i = 0; i < 6; i++) {
+            int x = p.x + dx[i];
+            int y = p.y + dy[i];
+            int z = p.z + dz[i];
+            if (current[x][y][z]) uf.unite(p.x, p.y, p.z, x, y, z);
+        }
+    }
+}
+
 void maintain(long long& energy, int bots) {
     energy += (hermonics ? 30 : 3) * R * R * R + 20 * bots;
 }
 
-pair<int, string> halt() {
-    return make_pair(0, "halt");
+command halt() {
+    return command(HALT, 0);
 }
 
-pair<int, string> wait() {
-    return make_pair(0, "wait");
+command wait() {
+    return command(WAIT, 0);
 }
 
-pair<int, string> flip() {
-    return make_pair(0, "flip");
+command flip() {
+    return command(FLIP, 0);
 }
 
-pair<int, string> smove(int dx, int dy, int dz) {
-    stringstream ss;
-    ss << "smove " << dx << " " << dy << " " << dz;
-    return make_pair(2 * manhattan(dx, dy, dz), ss.str());
+command smove(const position& p) {
+    return command(SMOVE, 2 * manhattan(p), p);
 }
 
-pair<int, string> smove(const position& p) {
-    return smove(p.x, p.y, p.z);
+command smove(int dx, int dy, int dz) {
+    return smove(position(dx, dy, dz));
 }
 
-pair<int, string> lmove(int dx1, int dy1, int dz1, int dx2, int dy2, int dz2) {
-    stringstream ss;
-    ss << "lmove " << dx1 << " " << dy1 << " " << dz1 << " " << dx2 << " " << dy2 << " " << dz2;
-    return make_pair(2 * (manhattan(dx1, dy1, dz1) + 2 + manhattan(dx2, dy2, dz2)), ss.str());
+command lmove(const position& p1, const position& p2) {
+    return command(LMOVE, 2 * (manhattan(p1) + 2 + manhattan(p2)), p1, p2);
 }
 
-pair<int, string> lmove(const position& p1, const position& p2) {
-    return lmove(p1.x, p1.y, p1.z, p2.x, p2.y, p2.z);
+command lmove(int dx1, int dy1, int dz1, int dx2, int dy2, int dz2) {
+    return lmove(position(dx1, dy1, dz1), position(dx2, dy2, dz2));
 }
 
-pair<int, string> fusionp(int dx, int dy, int dz) {
-    stringstream ss;
-    ss << "fusionp " << dx << " " << dy << " " << dz;
-    return make_pair(-24, ss.str());
+command fusionp(const position& p) {
+    return command(FUSIONP, -24, p);
 }
 
-pair<int, string> fusions(int dx, int dy, int dz) {
-    stringstream ss;
-    ss << "fusions " << dx << " " << dy << " " << dz;
-    return make_pair(0, ss.str());
+command fusionp(int dx, int dy, int dz) {
+    return fusionp(position(dx, dy, dz));
 }
 
-pair<int, string> fission(int dx, int dy, int dz, int m) {
-    stringstream ss;
-    ss << "fission " << dx << " " << dy << " " << dz << " " << m;
-    return make_pair(24, ss.str());
+command fusions(const position& p) {
+    return command(FUSIONS, 0, p);
 }
 
-pair<int, string> fill(int dx, int dy, int dz) {
-    stringstream ss;
-    ss << "fill " << dx << " " << dy << " " << dz;
-    return make_pair(12, ss.str());
+command fusions(int dx, int dy, int dz) {
+    return fusions(position(dx, dy, dz));
 }
 
-pair<int, string> fill(const position& p) {
-    return fill(p.x, p.y, p.z);
+command fission(const position& p, int m) {
+    return command(FISSION, 24, p, m);
 }
 
-void add_trace(long long& energy, vector <string>& traces, const pair<int, string>& trace) {
-    energy += trace.first;
-    traces.push_back(trace.second);
+command fission(int dx, int dy, int dz, int m) {
+    return fission(position(dx, dy, dz), m);
 }
 
-vector <pair<int, string>> get_moves(position& p1, const position& p2) {
+command fill(const position& p) {
+    return command(FILL, 12, p);
+}
+
+command fill(int dx, int dy, int dz) {
+    return fill(position(dx, dy, dz));
+}
+
+void add_trace(long long& energy, vector <command>& traces, const command& command) {
+    energy += command.energy;
+    traces.push_back(command);
+}
+
+vector <command> get_moves(const position& p1, const position& p2) {
     bool fx = false, fy = false, fz = false;
     position p = p2 - p1;
-    vector <pair<int, string>> traces;
+    vector <command> traces;
     
     if (abs(p.x) % 15 > 0 && abs(p.x) % 15 <= 5) fx = true;
     if (abs(p.y) % 15 > 0 && abs(p.y) % 15 <= 5) fy = true;
@@ -210,15 +369,12 @@ vector <pair<int, string>> get_moves(position& p1, const position& p2) {
         traces.push_back(smove(0, 0, dz));
     }
     
-    p1 = p2;
-    
     return traces;
 }
 
-vector <pair<int, string>> put_floor(const rectangle& rect, position& p, int floor) {
+vector <command> put_floor(const rectangle& rect, const position& p, int floor) {
     long long best_energy;
-    position last = p;
-    vector <pair<int, string>> best_traces;
+    vector <command> best_traces;
     
     for (int dx = -1; dx <= 1; dx++) {
         for (int dz = -1; dz <= 1; dz++) {
@@ -226,7 +382,7 @@ vector <pair<int, string>> put_floor(const rectangle& rect, position& p, int flo
             
             position now = p;
             vector <position> positions;
-            vector <pair<int, string>> traces;
+            vector <command> traces;
             for (int x = (dx == 1 ? rect.x1 : rect.x2); rect.x1 <= x && x <= rect.x2; x += dx) {
                 bool found = false;
                 for (int z = (dz == 1 ? rect.z1 : rect.z2); rect.z1 <= z && z <= rect.z2; z += dz) {
@@ -240,42 +396,49 @@ vector <pair<int, string>> put_floor(const rectangle& rect, position& p, int flo
             
             for (int i = 0; i < positions.size(); i++) {
                 if (i + 1 < positions.size() && manhattan(positions[i] - positions[i + 1]) <= 1) {
-                    vector <pair<int, string>> moves = get_moves(now, positions[i + 1]);
+                    vector <command> moves = get_moves(now, positions[i + 1]);
+                    now = positions[i + 1];
                     traces.insert(traces.end(), moves.begin(), moves.end());
-                    traces.push_back(fill((positions[i] - positions[i + 1]) + position(0, -1, 0)));
+                    traces.push_back(fill((positions[i] - now) + position(0, -1, 0)));
                     traces.push_back(fill(0, -1, 0));
                     if (i + 2 < positions.size() && manhattan(positions[i + 1] - positions[i + 2]) <= 1) {
-                        traces.push_back(fill((positions[i + 2] - positions[i + 1]) + position(0, -1, 0)));
+                        traces.push_back(fill((positions[i + 2] - now) + position(0, -1, 0)));
                         i += 2;
                     } else {
                         i++;
                     }
                 } else {
-                    vector <pair<int, string>> moves = get_moves(now, positions[i]);
+                    vector <command> moves = get_moves(now, positions[i]);
+                    now = positions[i];
                     traces.insert(traces.end(), moves.begin(), moves.end());
                     traces.push_back(fill(0, -1, 0));
                 }
             }
             
             long long energy = 0;
-            for (int i = 0; i < traces.size(); i++) energy += traces[i].first;
+            for (int i = 0; i < traces.size(); i++) energy += traces[i].energy;
             if (best_traces.empty() || traces.size() < best_traces.size() || (traces.size() == best_traces.size() && energy < best_energy)) {
-                last = now;
                 best_energy = energy;
                 best_traces = traces;
             }
         }
     }
     
-    p = last;
-    
     return best_traces;
 }
 
-pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& voxels, int direction) {
+pair<long long, vector <command>> calc(vector <rectangle>& bots, vector <int>& voxels, int direction) {
     long long energy = 0;
     vector <position> ps = {position(0, 0, 0)};
-    vector <string> traces;
+    vector <command> traces;
+    
+    for (int i = 0; i < R; i++) {
+        for (int j = 0; j < R; j++) {
+            for (int k = 0; k < R; k++) {
+                current[i][j][k] = false;
+            }
+        }
+    }
     
     {
         for (int i = 1; i < bots.size(); i++) {
@@ -290,9 +453,11 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& vo
     }
     
     {
-        vector <vector <pair<int, string>>> all_moves;
+        vector <vector <command>> all_moves;
         for (int i = 0; i < bots.size(); i++) {
-            vector <pair<int, string>> moves = get_moves(ps[i], position(bots[i].x1, 0, bots[i].z1));
+            position target = position(bots[i].x1, 0, bots[i].z1);
+            vector <command> moves = get_moves(ps[i], target);
+            ps[i] = target;
             reverse(moves.begin(), moves.end());
             all_moves.push_back(moves);
         }
@@ -312,33 +477,48 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& vo
             }
             if (!remaining) break;
         }
-        
-        for (int i = 0; i < traces.size(); i++) {
-            if (traces[traces.size() - i - 1] == "wait") {
-                hermonics = true;
-                traces[traces.size() - i - 1] = "flip";
-                break;
-            }
-        }
     }
     
     {
+        int full = 0;
+        UnionFind uf(R);
         vector <int> floors(bots.size());
-        vector <deque <pair<int, string>>> remaining_moves(bots.size());
+        vector <deque <command>> remaining_moves(bots.size());
         while (true) {
             maintain(energy, bots.size());
             
             for (int i = 0; i < bots.size(); i++) {
                 while (remaining_moves[i].empty() && floors[i] < R - 1) {
-                    vector <pair<int, string>> moves = put_floor(bots[i], ps[i], floors[i]++);
+                    vector <command> moves = put_floor(bots[i], ps[i], floors[i]++);
                     remaining_moves[i].insert(remaining_moves[i].end(), moves.begin(), moves.end());
                 }
                 
-                if (floors[i] == R - 1) {
+                if (remaining_moves[i].empty() && floors[i] == R - 1) {
                     floors[i]++;
-                    vector <pair<int, string>> moves = get_moves(ps[i], position(ps[i].x, R - 1, ps[i].z));
+                    vector <command> moves = get_moves(ps[i], position(ps[i].x, R - 1, ps[i].z));
                     remaining_moves[i].insert(remaining_moves[i].end(), moves.begin(), moves.end());
                 }
+            }
+            
+            bool all_grounded = (uf.size(uf.ground()) == full + 1);
+            if (all_grounded) {
+                for (int i = 0; i < bots.size(); i++) {
+                    if (!remaining_moves[i].empty() && remaining_moves[i].front().op == FILL) {
+                        if (!grounded(uf, ps[i] + remaining_moves[i].front().p1)) {
+                            all_grounded = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            if (all_grounded == hermonics) {
+                int minimum = 0;
+                for (int i = 0; i < bots.size(); i++) {
+                    if (voxels[i] < voxels[minimum]) minimum = i;
+                }
+                hermonics = !hermonics;
+                remaining_moves[minimum].push_front(flip());
             }
             
             bool remaining = false;
@@ -346,10 +526,24 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& vo
                 if (remaining_moves[i].empty()) {
                     add_trace(energy, traces, wait());
                 } else {
+                    if (remaining_moves[i].front().op == FILL) {
+                        full++;
+                        voxels[i]--;
+                        fill(uf, ps[i] + remaining_moves[i].front().p1);
+                    }
+                    if (remaining_moves[i].front().op == SMOVE) {
+                        ps[i] = ps[i] + remaining_moves[i].front().p1;
+                    } else if (remaining_moves[i].front().op == LMOVE) {
+                        ps[i] = ps[i] + remaining_moves[i].front().p1 + remaining_moves[i].front().p2;
+                    }
                     add_trace(energy, traces, remaining_moves[i].front());
                     remaining_moves[i].pop_front();
                 }
-                if (!remaining_moves[i].empty() || ps[i].y != R - 1) remaining = true;
+                if (!remaining_moves[i].empty() || ps[i].y != R - 1) {
+                    remaining = true;
+                } else {
+                    voxels[i] = -1;
+                }
             }
             if (!remaining) break;
         }
@@ -357,7 +551,7 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& vo
     
     {
         for (int i = bots.size(); i > 1; i--) {
-            vector <pair<int, string>> moves = get_moves(ps[i - 1], position(ps[i - 2].x + 1 - direction, R - 1, ps[i - 2].z + direction));
+            vector <command> moves = get_moves(ps[i - 1], position(ps[i - 2].x + 1 - direction, R - 1, ps[i - 2].z + direction));
             for (int j = 0; j < moves.size(); j++) {
                 maintain(energy, i);
                 
@@ -388,13 +582,15 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& vo
             add_trace(energy, traces, flip());
         }
         
-        vector <pair<int, string>> moves;
+        vector <command> moves;
         moves = get_moves(ps[0], position(0, R - 1, 0));
+        ps[0] = position(0, R - 1, 0);
         for (int i = 0; i < moves.size(); i++) {
             maintain(energy, 1);
             add_trace(energy, traces, moves[i]);
         }
         moves = get_moves(ps[0], position(0, 0, 0));
+        ps[0] = position(0, 0, 0);
         for (int i = 0; i < moves.size(); i++) {
             maintain(energy, 1);
             add_trace(energy, traces, moves[i]);
@@ -445,9 +641,9 @@ int main() {
     }
     
     long long best_energy = 1e18;
-    vector <string> best_traces;
+    vector <command> best_traces;
     
-    for (int i = 1; i <= MAX_B; i++) {
+    for (int i = min(R / 10, MAX_B); i <= MAX_B; i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
@@ -462,14 +658,14 @@ int main() {
         
         reverse(bots.begin(), bots.end());
         
-        pair<long long, vector <string>> tmp = calc(bots, voxels, 0);
+        pair<long long, vector <command>> tmp = calc(bots, voxels, 0);
         if (tmp.first < best_energy) {
             best_energy = tmp.first;
             best_traces = tmp.second;
         }
     }
     
-    for (int i = 1; i <= MAX_B; i++) {
+    for (int i = min(R / 10, MAX_B); i <= MAX_B; i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
@@ -484,14 +680,14 @@ int main() {
         
         reverse(bots.begin(), bots.end());
         
-        pair<long long, vector <string>> tmp = calc(bots, voxels, 1);
+        pair<long long, vector <command>> tmp = calc(bots, voxels, 1);
         if (tmp.first < best_energy) {
             best_energy = tmp.first;
             best_traces = tmp.second;
         }
     }
     
-    for (int i = 0; i < best_traces.size(); i++) cout << best_traces[i] << endl;
+    output(best_traces);
     
     return 0;
 }
