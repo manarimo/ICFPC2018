@@ -1,4 +1,5 @@
 assets
+!official-tools/assets
 .idea
 venv
 **/__pycache__
@@ -6,3 +7,4 @@ a.out
 *.iml
 **/node_modules
 config/env.txt
+autoscorer/autoscorer

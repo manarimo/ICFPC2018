@@ -1,0 +1,13 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Traces submitted</h1>
+<div>
+    <a href="{{ url_for('hello') }}">Go back to top page.</a>
+</div>
+<div>
+    <a href="{{ zipfile_url }}">Download submitted file.</a>
+</div>
+{% endblock %}

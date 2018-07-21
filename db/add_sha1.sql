@@ -1,0 +1,1 @@
+ALTER TABLE tbltrace ADD sha1 BINARY(20) UNIQUE;

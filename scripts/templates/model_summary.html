@@ -1,0 +1,65 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Model {{ name }}</h1>
+<div>
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-45deg.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-315deg.png" width="150">
+</div>
+<div>
+    <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
+    {% if model %}
+    <h2>Summary</h2>
+    <table class="table">
+    <thead>
+    <tr>
+        <td>R</td>
+        <td>Fill</td>
+        <td>#Components</td>
+        <td>#Void spaces</td>
+        <td>Max Depth</td>
+    </tr>
+    </thead>
+    <tbody>
+        <td>{{ model.r }}</td>
+        <td>{{ model.fill_count }}</td>
+        <td>{{ model.num_components }}</td>
+        <td>{{ model.num_void_spaces }}</td>
+        <td>{{ model.max_depth }}</td>
+    </tbody>
+    </table>
+    {% endif %}
+</div>
+
+<h1>Trace List</h1>
+<div>
+    <table class="table">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Energy</th>
+        <th>Author</th>
+        <th>Comment</th>
+        <th>Submit Date</th>
+        <th>Download</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for trace in traces %}
+    <tr>
+        <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
+        <td>{{ "%.3E"|format(trace['energy']) }}</td>
+        <td>{{ trace['author'] }}</td>
+        <td>{{ trace['comment'] }}</td>
+        <td>{{ trace['submit_time_string'] }}</td>
+        <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% endblock %}

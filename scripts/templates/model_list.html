@@ -1,0 +1,35 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Model List</h1>
+<div>
+    <table class="table">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Size</th>
+        <th>Fill</th>
+        <th>Thumbnail</th>
+        <th>Link</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for model in models %}
+    <tr>
+        <td><a href="http://tools.kadingel.osak.jp/official-tools/view-model.html?model_name={{model['name']}}">{{ model['name'] }}</a></td>
+        <td>{{ model['r'] }}</td>
+        <td>{{ model['fill_count'] }}</td>
+        <td>
+            <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{model['name']}}_tgt.mdl.png" width="150">
+            <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{model['name']}}_tgt.mdl-up-45deg.png" width="150">
+            <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{model['name']}}_tgt.mdl-up-315deg.png" width="150">
+        </td>
+        <td><a href="{{ url_for('model_summary', name=model['name']) }}">Summary</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

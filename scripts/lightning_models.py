@@ -17,7 +17,7 @@ def main():
         with model_file.open('rb') as f:
             data = f.read()
         cursor.execute("INSERT INTO tblmodel (name, body) VALUES(%s, %s)", (name, data))
-
+        connection.commit()
         cursor.execute("SELECT body FROM tblmodel WHERE name=%s", (name,))
         row = cursor.fetchone()
         body = row[b"body"]
