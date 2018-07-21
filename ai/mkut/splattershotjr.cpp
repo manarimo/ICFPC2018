@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <map>
 #include <sstream>
+#include <set>
 using namespace std;
 
 // 6
@@ -77,7 +78,7 @@ int man_d(Point& a, Point& b) {
     return abs(abs(a.x - b.x) + abs(a.y - b.y) + abs(a.z - b.z) - 1);
 }
 
-vector<vector<vector<char> > > alive_zone(const int R, int W, vector<vector<vector<char> > >& field, Point& filled) {
+vector<vector<vector<char> > > alive_zone(const int R, int W, vector<vector<vector<char> > >& field, set<Point>& additional) {
     vector<vector<vector<char> > > alive(W, vector<vector<char> >(R, vector<char>(R)));
     queue<Point> q;
     q.push(Point(0, 0, 0));
@@ -94,11 +95,11 @@ vector<vector<vector<char> > > alive_zone(const int R, int W, vector<vector<vect
             if (nx < 0 || nx >= W || ny < 0 || ny >= R || nz < 0 || nz >= R) {
                 continue;
             }
-            if (field[nx][ny][nz] || (filled.x == nx && filled.y == ny && filled.z == nz)) {
+            Point np(nx, ny, nz);
+            if (field[nx][ny][nz] || additional.count(np)) {
                 continue;
             }
             if (!alive[nx][ny][nz]) {
-                Point np(nx, ny, nz);
                 alive[nx][ny][nz] = 1;
                 q.push(np);
             }
@@ -107,7 +108,10 @@ vector<vector<vector<char> > > alive_zone(const int R, int W, vector<vector<vect
     return alive;
 }
 
-vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s, Point& t, bool fill, Point& next, vector<PointD>& tasks, int taskId) {
+vector<vector<string> > bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s, vector<PointD>& tasks, int taskId) {
+    bool fill = taskId < tasks.size();
+    Point t = fill ? tasks[taskId].to_point() : Point(0, 0, 0);
+    // cerr << taskId << "/" << tasks.size() << (fill ? "(fill)" : "") << ": " << t.x << " " << t.y << " " << t.z << endl;
     map<Point, Point> prev;
     map<Point, string> command;
     priority_queue<AStarPoint> q;
@@ -116,28 +120,47 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
     prev[s] = s;
     command[s] = "";
 
-    map<Point, string> atari;
-    vector<vector<vector<char> > > alive_zone_after = alive_zone(R, W, field, t);
-    for (int i = taskId + 1; i < tasks.size(); i++) {
-        if (!alive_zone_after[tasks[i].x][tasks[i].y][tasks[i].z]) {
-            return vector<string>(1, "> <");
-        }
-    }
+    map<Point, vector<string> > atari;
+    set<Point> additional;
+    int rush = 0;
     if (fill) {
-        for (int i = 0; i < 18; i++) {
-            int dx = nd_dx[i], nx = t.x + dx;
-            int dy = nd_dy[i], ny = t.y + dy;
-            int dz = nd_dz[i], nz = t.z + dz;
-            Point np(nx, ny, nz);
-            if (nx >= 0 && nx < W && ny >= 0 && ny < R && nz >= 0 && nz < R && alive_zone_after[nx][ny][nz]) {
-                atari[np] = make_command_3("fill", -dx, -dy, -dz);
+        for (; taskId + rush < tasks.size(); rush++) {
+            additional.insert(tasks[taskId + rush].to_point());
+            vector<vector<vector<char> > > alive_zone_after = alive_zone(R, W, field, additional);
+            bool dead = false;
+            for (int i = taskId + + rush + 1; i < tasks.size(); i++) {
+                if (!alive_zone_after[tasks[i].x][tasks[i].y][tasks[i].z]) {
+                    dead = true;
+                    break;
+                }
+            }
+            if (dead) {
+                break;
+            }
+            map<Point, vector<string> > newAtari;
+            for (int i = 0; i < 18; i++) {
+                int dx = nd_dx[i], nx = tasks[taskId + rush].x + dx;
+                int dy = nd_dy[i], ny = tasks[taskId + rush].y + dy;
+                int dz = nd_dz[i], nz = tasks[taskId + rush].z + dz;
+                Point np(nx, ny, nz);
+                if (nx >= 0 && nx < W && ny >= 0 && ny < R && nz >= 0 && nz < R && alive_zone_after[nx][ny][nz]) {
+                    if (rush == 0 || atari.count(np)) {
+                        newAtari[np] = atari[np];
+                        newAtari[np].push_back(make_command_3("fill", -dx, -dy, -dz));
+                    }
+                }
+            }
+            if (newAtari.size()) {
+                atari = newAtari;
+            } else {
+                break;
             }
         }
+        if (rush == 0) {
+            return vector<vector<string> >(1, vector<string>(1, "> <"));
+        }
     } else {
-        atari[t] = "";
-    }
-    if (!atari.size()) {
-        return vector<string>(1, "> <");
+        atari[t] = vector<string>();
     }
     // cerr << "s: " << s.x << "," << s.y << "," << s.z << endl;
     // cerr << "t: " << t.x << "," << t.y << "," << t.z << endl;
@@ -149,24 +172,27 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
         Point p_p = p.to_point();
         if (atari.count(p_p)) {
             if (fill) {
-                vector<string> ret;
-                ret.push_back(atari[p_p]);
+                vector<vector<string> > ret(1);
+                ret[0].push_back(atari[p_p][0]);
                 Point tp(p_p);
                 while (tp.x != s.x || tp.y != s.y || tp.z != s.z) {
-                    ret.push_back(command[tp]);
+                    ret[0].push_back(command[tp]);
                     tp = prev[tp];
                 }
-                reverse(ret.begin(), ret.end());
-                next.x = p.x; next.y = p.y; next.z = p.z;
+                reverse(ret[0].begin(), ret[0].end());
+                for (int i = 1; i < rush; i++) {
+                    ret.push_back(vector<string>(1, atari[p_p][i]));
+                }
+                s.x = p.x; s.y = p.y; s.z = p.z;
                 return ret;
             } else {
-                vector<string> ret;
+                vector<vector<string> > ret(1);
                 Point tp(p_p);
                 while (tp.x != s.x || tp.y != s.y || tp.z != s.z) {
-                    ret.push_back(command[tp]);
+                    ret[0].push_back(command[tp]);
                     tp = prev[tp];
                 }
-                reverse(ret.begin(), ret.end());
+                reverse(ret[0].begin(), ret[0].end());
                 return ret;
             }
         }
@@ -233,35 +259,37 @@ vector<string> bfs(int R, int W, vector<vector<vector<char> > >& field, Point& s
     }
 
     // unreachable
-    return vector<string>(1, "> <");
+    return vector<vector<string> >(1, vector<string>(1, "> <"));
 }
 
 vector<vector<string> > computePath(const int R, const int W, vector<PointD> tasks, vector<PointD>& newTasks) {
     vector<vector<string> > ret;
     vector<vector<vector<char> > > field(W, vector<vector<char> >(R, vector<char>(R)));
     Point current(0, 0, 0);
-    vector<PointD> additionalTasks;
     int renzoku = 0;
     for (int i = 0; i < tasks.size() + 1; i++) {
-        Point t = i == tasks.size() ? Point(0, 0, 0) : tasks[i].to_point();
-        vector<string> commands = bfs(R, W, field, current, t, i < tasks.size(), current, tasks, i);
-        if (commands.size() == 1 && commands[0] == "> <") {
+        int rush;
+        vector<vector<string> > commands = bfs(R, W, field, current, tasks, i);
+        if (commands.size() == 1 && commands[0].size() == 1 && commands[0][0] == "> <") {
             tasks.push_back(tasks[i]);
             cerr << "*";
             renzoku++;
-            if (renzoku >= tasks.size()) {
+            if (renzoku >= tasks.size() - i) {
                 ret.push_back(vector<string>(1, "> <"));
                 return ret;
             }
         } else {
-            if (commands.size()) {
-                ret.push_back(commands);
-                newTasks.push_back(tasks[i]);
+            for (int k = 0; k < commands.size(); k++) {
+                if (commands[k].size()) {
+                    ret.push_back(commands[k]);
+                    newTasks.push_back(tasks[i + k]);
+                }
+                if (i + k < tasks.size()) {
+                    field[tasks[i + k].x][tasks[i + k].y][tasks[i + k].z] = 1;
+                }
+                cerr << (k == 0 ? "." : "_");
             }
-            if (i < tasks.size()) {
-                field[tasks[i].x][tasks[i].y][tasks[i].z] = 1;
-            }
-            cerr << ".";
+            i += commands.size() - 1;
             renzoku = 0;
         }
     }
