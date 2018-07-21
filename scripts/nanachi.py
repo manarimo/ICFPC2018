@@ -67,7 +67,10 @@ def trace_register():
         name = request.form["name"]
         author = request.form["author"]
         comment = request.form["comment"]
-        energy = int(request.form["energy"])
+        if "energy" in request.form:
+            energy = int(request.form["energy"])
+        else:
+            energy = None
         nbt_blob = request.files["nbt-blob"].read()
         trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
