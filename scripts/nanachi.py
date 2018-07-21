@@ -29,7 +29,7 @@ def pending_traces():
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
-                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id WHERE tbltrace_metadata.energy IS NULL")
+                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id WHERE tbltrace_metadata.energy_autoscorer IS NULL")
     traces = cursor.fetchall()
     cursor.close()
     connection.commit()
