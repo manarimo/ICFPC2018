@@ -291,7 +291,7 @@ int main() {
             bots[j].wait();
         }
         bots[i + 1] = bots[i].fission({0, 0, 1}, SEED - 2 - i);
-        moveBots(bots, i + 1, {basew[i + 1], 1, bots[i + 1].pos.z});
+        moveBots(bots, i + 1, {basew[i], 1, bots[i + 1].pos.z});
     }
 
     cerr << "block" << endl;
@@ -311,8 +311,8 @@ int main() {
                 nxt.push(i);
             }
             while (!nxt.empty()) {
-                int i = nxt.front();
 //                cerr <<  bots[i].pos << " to " << P{range[i], curY + 1, bots[i].pos.z} << endl;
+                int i = nxt.front();
                 nxt.pop();
                 if (i + 1 < SEED && !done[i+1] && bots[i+1].pos.x <= range[i]) {
                     nxt.push(i);
