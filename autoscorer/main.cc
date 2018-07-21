@@ -135,6 +135,29 @@ struct NanoBot {
     Coord position;
 };
 
+struct Model {
+    int size;
+    bool field[250][250][250];
+
+    Model(ifstream& in) {
+        unsigned char b1;
+        in.read(reinterpret_cast<char*>(&b1), sizeof(b1));
+        size = b1;
+
+        const int bytes = (size * size * size + 7) / 8;
+        int x = 0, y = 0, z = 0;
+        for (int i = 0; i < bytes; i++) {
+           in.read(reinterpret_cast<char*>(&b1), 1);
+            for (int j = 0; j < 8 && x < size; j++) {
+                field[x][y][z] = (b1 >> j) & 1;
+	            z++;
+	            if (z == size) z = 0, y++;
+	            if (y == size) y = 0, x++;
+            }
+        }
+    }
+};
+
 struct State {
     map<int, NanoBot> bots;
     bool field[250][250][250];
@@ -144,8 +167,9 @@ struct State {
     DisjointSet ds;
     int ground;
     int filled;
+    Model* model;
 
-    State(int r) : energy(0), harmonics(LOW), r(r), ds(r * r * r + 1), ground(r * r * r), filled(0) {
+    State(Model* model) : energy(0), harmonics(LOW), r(model->size), ds(r * r * r + 1), ground(r * r * r), filled(0), model(model) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -270,6 +294,16 @@ struct State {
 
     void checkPhysics() {
         assert(ds.size[ds.get(ground)] == filled + 1);
+    }
+
+    void checkFinalState() {
+        for (int i = 0; i < r; i++) {
+            for (int j = 0; j < r; j++) {
+                for (int k = 0; k < r; k++) {
+                    assert(field[i][j][k] == model->field[i][j][k]);
+                }
+            }
+        }
     }
 };
 
@@ -656,11 +690,12 @@ void runStep(State &state, deque<Command*> &commands) {
     //cout << state.energy << endl;
 }
 
-void run(int r, deque<Command *> &commands) {
-    State *state = new State(r);
+void run(Model* model, deque<Command *> &commands) {
+    State *state = new State(model);
     while (state->botCount() > 0) {
         runStep(*state, commands);
     }
+    state->checkFinalState();
     
     cout << state->energy << endl;
 }
@@ -692,13 +727,6 @@ Coord decodeLongDistance(int a, int i) {
        return Coord{0, 0, i - 15};
    }
    assert(false);
-}
-
-int readModelResolution(const string filename) {
-    ifstream in(filename);
-    unsigned char b1;
-    in.read(reinterpret_cast<char*>(&b1), sizeof(b1));
-    return b1;
 }
 
 deque<Command*> compile(const string filename) {
@@ -749,7 +777,9 @@ int main(int argc, char **argv) {
         cerr << "Usage: ./autoscorer [mdl file] [nbt file]" << endl;
         return 1;
     }
-    int size = readModelResolution(string(argv[1]));
+    cerr << "Reading Model..." << endl;
+    ifstream in(argv[1]);
+    Model* model = new Model(in);
     cerr << "Compiling..." << endl;
     deque <Command*> commands = compile(string(argv[2]));
     /*
@@ -758,6 +788,6 @@ int main(int argc, char **argv) {
     }
      */
     cerr << "Running..." << endl;
-    run(size, commands);
+    run(model, commands);
     return 0;
 }

@@ -8,3 +8,4 @@ a.out
 **/node_modules
 config/env.txt
 autoscorer/autoscorer
+*.class

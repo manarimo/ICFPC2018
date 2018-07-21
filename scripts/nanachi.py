@@ -19,9 +19,26 @@ CORS(app)
 connection = get_connection()
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return app.send_static_file("favicon.ico")
+
+
 @app.route("/assets/<path:path>")
 def assets(path):
     return send_from_directory(const.root / 'official-tools' / 'assets', path)
+
+
+@app.route("/api/pending_traces")
+def pending_traces():
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+                   "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
+                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id WHERE tbltrace_metadata.energy_autoscorer IS NULL")
+    traces = cursor.fetchall()
+    cursor.close()
+    connection.commit()
+    return Response(json.dumps({"traces": traces}), mimetype="application/json")
 
 
 @app.route("/best_traces", methods=["GET", "POST"])
@@ -96,7 +113,7 @@ def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
         "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
-        "tm.submit_time AS submit_time "
+        "tm.submit_time AS submit_time, tm.energy_autoscorer AS energy_autoscorer "
         "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
         "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
         "WHERE tbltrace.id=%s",
@@ -107,6 +124,20 @@ def trace_summary(trace_id: int):
     cursor.close()
     connection.commit()
     return render_template("trace_summary.html", trace=row)
+
+@app.route("/traces/<int:trace_id>/update-autoscorer", methods=["POST"])
+def update_autoscorer(trace_id: int):
+    try:
+        energy = int(request.form["energy"])
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE tbltrace_metadata SET energy_autoscorer = %s WHERE trace_id = %s",
+            (energy, trace_id,)
+        )
+        connection.commit()
+        return Response(json.dumps({"status": "success"}), content_type='application/json')
+    except Exception as e:
+        return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
 
 
 @app.route("/models/<name>/blob")
@@ -128,7 +159,7 @@ def model_summary(name: str):
     tracecursor.execute(
         "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
         "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy",
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
         (name,))
     tracerows = tracecursor.fetchall()
     tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]

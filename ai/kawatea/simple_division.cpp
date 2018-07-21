@@ -424,6 +424,54 @@ vector <command> put_floor(const rectangle& rect, const position& p, int floor) 
         }
     }
     
+    for (int dx = -1; dx <= 1; dx++) {
+        for (int dz = -1; dz <= 1; dz++) {
+            if (dx == 0 || dz == 0) continue;
+            
+            position now = p;
+            vector <position> positions;
+            vector <command> traces;
+            for (int z = (dz == 1 ? rect.z1 : rect.z2); rect.z1 <= z && z <= rect.z2; z += dz) {
+                bool found = false;
+                for (int x = (dx == 1 ? rect.x1 : rect.x2); rect.x1 <= x && x <= rect.x2; x += dx) {
+                    if (matrix[x][floor][z]) {
+                        found = true;
+                        positions.push_back(position(x, floor + 1, z));
+                    }
+                }
+                if (found) dx *= -1;
+            }
+            
+            for (int i = 0; i < positions.size(); i++) {
+                if (i + 1 < positions.size() && manhattan(positions[i] - positions[i + 1]) <= 1) {
+                    vector <command> moves = get_moves(now, positions[i + 1]);
+                    now = positions[i + 1];
+                    traces.insert(traces.end(), moves.begin(), moves.end());
+                    traces.push_back(fill((positions[i] - now) + position(0, -1, 0)));
+                    traces.push_back(fill(0, -1, 0));
+                    if (i + 2 < positions.size() && manhattan(positions[i + 1] - positions[i + 2]) <= 1) {
+                        traces.push_back(fill((positions[i + 2] - now) + position(0, -1, 0)));
+                        i += 2;
+                    } else {
+                        i++;
+                    }
+                } else {
+                    vector <command> moves = get_moves(now, positions[i]);
+                    now = positions[i];
+                    traces.insert(traces.end(), moves.begin(), moves.end());
+                    traces.push_back(fill(0, -1, 0));
+                }
+            }
+            
+            long long energy = 0;
+            for (int i = 0; i < traces.size(); i++) energy += traces[i].energy;
+            if (best_traces.empty() || traces.size() < best_traces.size() || (traces.size() == best_traces.size() && energy < best_energy)) {
+                best_energy = energy;
+                best_traces = traces;
+            }
+        }
+    }
+    
     return best_traces;
 }
 
@@ -657,6 +705,7 @@ int main() {
         }
         
         reverse(bots.begin(), bots.end());
+        reverse(voxels.begin(), voxels.end());
         
         pair<long long, vector <command>> tmp = calc(bots, voxels, 0);
         if (tmp.first < best_energy) {
@@ -679,6 +728,7 @@ int main() {
         }
         
         reverse(bots.begin(), bots.end());
+        reverse(voxels.begin(), voxels.end());
         
         pair<long long, vector <command>> tmp = calc(bots, voxels, 1);
         if (tmp.first < best_energy) {
@@ -687,6 +737,7 @@ int main() {
         }
     }
     
+    cerr << best_energy << endl;
     output(best_traces);
     
     return 0;

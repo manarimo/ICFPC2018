@@ -1,0 +1,4 @@
+#!/bin/sh
+./a.out < ../../assets/problemsL/LA$1_tgt.mdl > ../../hissen/$1.out
+cd ../../hissen
+./hissen $1.out ../assets/problemsL/$1.nbt
