@@ -13,9 +13,10 @@ def register(name: str, blob: bytes, energy: int, author: str, comment: str):
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT id FROM tblmodel WHERE name=%s", (name,))
     model_id = cursor.fetchone()["id"]
-    cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s)", (model_id, blob, -energy if energy is not None else None, digest))
+    negenergy = -energy if energy is not None else None
+    cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE model_id=%s, score=%s", (model_id, blob, negenergy, digest, model_id, negenergy))
     trace_id = cursor.lastrowid
-    cursor.execute("INSERT INTO tbltrace_metadata (trace_id, energy, author, comment) VALUES (%s, %s, %s, %s)", (trace_id, energy, author, comment))
+    cursor.execute("REPLACE INTO tbltrace_metadata (trace_id, energy, author, comment) VALUES (%s, %s, %s, %s)", (trace_id, energy, author, comment))
     cursor.close()
     connection.commit()
     connection.close()
