@@ -53,7 +53,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=traces.values())
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]))
 
 
 @app.route("/traces/register", methods=["POST"])
@@ -65,7 +65,7 @@ def trace_register():
         trace_id = register_trace.register(name, nbt_blob, energy)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
-        return Response(json.dumps({"status": "failure", "trace_id": str(e)}), content_type='application/json')
+        return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
 
 
 @app.route("/traces/<int:trace_id>/blob")
@@ -107,7 +107,7 @@ def model_summary(name: str):
     tracecursor.execute(
         "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
         "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s",
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy",
         (name,))
     tracerows = tracecursor.fetchall()
     tracecursor.close()

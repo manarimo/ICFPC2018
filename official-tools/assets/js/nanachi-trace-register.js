@@ -41,10 +41,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     method: 'POST',
                     body: formData,
                 });
-                if (response.ok) {
+                const json = await response.json();
+                if (json.status === 'success') {
                     stdout.innerHTML += '<p style="color: green">Upload succeeded!</p>';
                 } else {
-                    const err = await response.text();
+                    const err = json.message;
                     stdout.innerHTML += `<p style="color: red">Upload failed: ${err}</p>`;
                 }
             } catch (err) {
