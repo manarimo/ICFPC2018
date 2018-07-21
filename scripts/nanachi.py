@@ -107,7 +107,7 @@ def model_summary(name: str):
     tracecursor.execute(
         "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
         "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tblmodel.name",
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy",
         (name,))
     tracerows = tracecursor.fetchall()
     tracecursor.close()
