@@ -5,6 +5,11 @@ Nanachi
 {% block content %}
 <h1>Model {{ name }}</h1>
 <div>
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-45deg.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-315deg.png" width="150">
+</div>
+<div>
     <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
     {% if model %}
     <h2>Summary</h2>
