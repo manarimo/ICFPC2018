@@ -671,28 +671,45 @@ pair<long long, vector <command>> calc_i(int B, const vector <int>& mutations, v
     }
     
     {
-        for (int i = B; i > 1; i--) {
-            vector <command> moves = get_moves(ps[i - 1], position(ps[i - 2].x + 1 - direction, mutations.back(), ps[i - 2].z + direction));
-            for (int j = 0; j < moves.size(); j++) {
-                maintain(energy, i);
-                
-                for (int k = 0; k < i - 1; k++) {
-                    if (hermonics) {
-                        hermonics = false;
-                        add_trace(energy, traces, flip());
-                    } else {
-                        add_trace(energy, traces, wait());
-                    }
-                }
-                
-                add_trace(energy, traces, moves[j]);
+        while (ps.size() > 1) {
+            vector <vector <command>> all_moves(ps.size());
+            for (int i = ps.size() - 1; i > 0; i -= 2) {
+                int dx = 1 - direction, dy = 0, dz = direction;
+                all_moves[i] = get_moves(ps[i], position(ps[i - 1].x + dx, mutations.back(), ps[i - 1].z + dz));
+                all_moves[i].push_back(fusions(-dx, -dy, -dz));
+                reverse(all_moves[i].begin(), all_moves[i].end());
+                all_moves[i - 1].push_back(fusionp(dx, dy, dz));
+                while (all_moves[i - 1].size() < all_moves[i].size()) all_moves[i - 1].push_back(wait());
             }
             
-            maintain(energy, i);
-            for (int j = 0; j < i - 2; j++) add_trace(energy, traces, wait());
-            int dx = 1 - direction, dy = 0, dz = direction;
-            add_trace(energy, traces, fusionp(dx, dy, dz));
-            add_trace(energy, traces, fusions(-dx, -dy, -dz));
+            while (true) {
+                maintain(energy, ps.size());
+                
+                bool remaining = false;
+                for (int i = 0; i < all_moves.size(); i++) {
+                    bool fusions = false;
+                    if (all_moves[i].empty() || all_moves[i].back().op == WAIT) {
+                        if (hermonics) {
+                            hermonics = false;
+                            add_trace(energy, traces, flip());
+                        } else {
+                            add_trace(energy, traces, wait());
+                        }
+                        if (!all_moves[i].empty()) all_moves[i].pop_back();
+                    } else {
+                        if (all_moves[i].back().op == FUSIONS) fusions = true;
+                        add_trace(energy, traces, all_moves[i].back());
+                        all_moves[i].pop_back();
+                    }
+                    if (!all_moves[i].empty()) remaining = true;
+                    if (fusions) {
+                        ps.erase(ps.begin() + i);
+                        all_moves.erase(all_moves.begin() + i);
+                        i--;
+                    }
+                }
+                if (!remaining) break;
+            }
         }
     }
     
