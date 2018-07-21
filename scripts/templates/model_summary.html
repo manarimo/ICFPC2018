@@ -43,7 +43,7 @@ Nanachi
     {% for trace in traces %}
     <tr>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
-        <td>{{ trace['energy'] }}</td>
+        <td>{{ "%.3E"|format(trace['energy']) }}</td>
         <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
     </tr>
     {% endfor %}
