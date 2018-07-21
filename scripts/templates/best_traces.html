@@ -1,0 +1,32 @@
+{% extends "common.html" %}
+{% block titlename %}
+Nanachi
+{% endblock %}
+{% block content %}
+<h1>Best Trace List</h1>
+<div>
+    <form method="post" action="{{ url_for('best_traces') }}">
+        <button>Submit!</button>
+    </form>
+</div>
+<div>
+    <table class="table">
+    <thead>
+    <tr>
+        <th>Model Name</th>
+        <th>Trace ID</th>
+        <th>Energy</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for trace in traces %}
+    <tr>
+        <td><a href="{{ url_for('model_summary', name=trace['model_name']) }}">{{ trace['model_name'] }}</a> </td>
+        <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
+        <td>{{ trace['energy'] }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

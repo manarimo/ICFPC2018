@@ -1,4 +1,5 @@
 # メイドインアビスをみて
+from pathlib import Path
 
 from flask import Flask, render_template, make_response, send_from_directory, request, redirect, url_for
 from flask_cors import CORS
@@ -6,6 +7,9 @@ from db import get_connection
 import const
 import logging
 import register_trace
+from tempfile import NamedTemporaryFile
+import submit
+import api
 
 
 app = Flask(__name__, static_url_path="/static")
@@ -16,6 +20,39 @@ connection = get_connection()
 @app.route("/assets/<path:path>")
 def assets(path):
     return send_from_directory(const.root / 'official-tools' / 'assets', path)
+
+
+@app.route("/best_traces", methods=["GET", "POST"])
+def best_traces():
+    traces = {}
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy "
+                   "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
+                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    for trace in cursor.fetchall():
+        model_name = trace["model_name"]
+        if model_name not in traces:
+            traces[model_name] = trace
+        elif trace["energy"] < traces[model_name]["energy"]:
+            traces[model_name] = trace
+    cursor.close()
+
+    if request.method == "POST":
+        cursor = connection.cursor(dictionary=True)
+        blobs = {}  # todo: do this in single query
+        for trace in traces.values():
+            cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace["trace_id"], ))
+            blob = cursor.fetchone()[b"body"]
+            blobs[trace["model_name"]] = blob
+        cursor.close()
+        with NamedTemporaryFile() as zf:
+            zipfile_path = Path(zf.name)
+            submit.generate_zip(zipfile_path, blobs)
+            digest, public_url = submit.upload_to_s3(Path(zf.name))
+            api.do_submit(public_url, digest)
+            return render_template("submit_result.html", zipfile_url=public_url)
+    else:
+        return render_template("best_traces.html", traces=traces.values())
 
 
 @app.route("/traces/register", methods=["POST"])
