@@ -19,6 +19,11 @@ CORS(app)
 connection = get_connection()
 
 
+@app.route("/favicon.ico")
+def favicon():
+    return app.send_static_file("favicon.ico")
+
+
 @app.route("/assets/<path:path>")
 def assets(path):
     return send_from_directory(const.root / 'official-tools' / 'assets', path)
