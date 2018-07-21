@@ -120,6 +120,20 @@ def trace_summary(trace_id: int):
     connection.commit()
     return render_template("trace_summary.html", trace=row)
 
+@app.route("/traces/<int:trace_id>/update-autoscorer", methods=["POST"])
+def update_autoscorer(trace_id: int):
+    try:
+        energy = int(request.form["energy"])
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            "UPDATE tbltrace_metadata SET energy_autoscorer = %s WHERE trace_id = %s",
+            (energy, trace_id,)
+        )
+        connection.commit()
+        return Response(json.dumps({"status": "success"}), content_type='application/json')
+    except Exception as e:
+        return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
+
 
 @app.route("/models/<name>/blob")
 def model_blob(name: str):
