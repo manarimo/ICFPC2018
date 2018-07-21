@@ -15,7 +15,8 @@ traces['traces'].each do |trace|
     puts "#{trace['model_name']}: #{score}"
     puts `curl -X POST -F energy=#{score.to_i} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
   else
-    puts "Skip registering score due to validation error"
+    puts "#{trace['model_name']}: Failed"
+    puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
   end
 end
 

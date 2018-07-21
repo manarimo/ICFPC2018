@@ -130,11 +130,16 @@ def trace_summary(trace_id: int):
 @app.route("/traces/<int:trace_id>/update-autoscorer", methods=["POST"])
 def update_autoscorer(trace_id: int):
     try:
-        energy = int(request.form["energy"])
+        if 'energy' in request.form:
+            energy = int(request.form["energy"])
+            failed = False
+        else:
+            energy = None
+            failed = True
         cursor = connection.cursor(dictionary=True)
         cursor.execute(
-            "UPDATE tbltrace_metadata SET energy_autoscorer = %s WHERE trace_id = %s",
-            (energy, trace_id,)
+            "UPDATE tbltrace_metadata SET energy_autoscorer = %s, failed = %s WHERE trace_id = %s",
+            (energy, failed, trace_id,)
         )
         connection.commit()
         return Response(json.dumps({"status": "success"}), content_type='application/json')
