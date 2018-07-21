@@ -1,0 +1,1 @@
+ALTER TABLE tblmodel_metadata ADD `lightning` tinyint(1) NOT NULL DEFAULT '0';
