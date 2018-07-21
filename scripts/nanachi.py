@@ -31,11 +31,13 @@ def best_traces():
     cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    def energy_order(energy):
+        return energy is None, energy
     for trace in cursor.fetchall():
         model_name = trace["model_name"]
         if model_name not in traces:
             traces[model_name] = trace
-        elif trace["energy"] < traces[model_name]["energy"]:
+        elif energy_order(trace["energy"]) < energy_order(traces[model_name]["energy"]):
             traces[model_name] = trace
     cursor.close()
     connection.commit()
@@ -123,7 +125,7 @@ def model_summary(name: str):
     tracecursor.execute(
         "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
         "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy",
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy IS NULL, tbltrace_metadata.energy",
         (name,))
     tracerows = tracecursor.fetchall()
     tracecursor.close()
