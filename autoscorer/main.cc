@@ -297,6 +297,7 @@ struct State {
     }
 
     void checkFinalState() {
+        assert(botCount() == 0);
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
                 for (int k = 0; k < r; k++) {
@@ -340,7 +341,7 @@ struct HaltCommand : public Command {
     }
 
     virtual void updateState(State &state, int botId) {
-        state.clearBots();
+        state.removeBot(botId);
     }
 
     virtual ostream& print(ostream &os) const {
@@ -695,6 +696,7 @@ void run(Model* model, deque<Command *> &commands) {
     while (state->botCount() > 0) {
         runStep(*state, commands);
     }
+    assert(commands.empty());
     state->checkFinalState();
     
     cout << state->energy << endl;
