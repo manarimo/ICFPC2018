@@ -297,6 +297,7 @@ struct State {
     }
 
     void checkFinalState() {
+        assert(botCount() == 0);
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
                 for (int k = 0; k < r; k++) {
@@ -340,7 +341,7 @@ struct HaltCommand : public Command {
     }
 
     virtual void updateState(State &state, int botId) {
-        state.clearBots();
+        state.removeBot(botId);
     }
 
     virtual ostream& print(ostream &os) const {
@@ -422,8 +423,8 @@ struct LMoveCommand : public Command {
     Coord d1, d2;
 
     LMoveCommand(const Coord &d1, const Coord &d2) : d1(d1), d2(d2) {
-        assert(d1.isLongDistance());
-        assert(d2.isLongDistance());
+        assert(d1.isShortDistance());
+        assert(d2.isShortDistance());
     }
 
     virtual void checkPrecondition(const State &state, int botId) {
@@ -464,7 +465,7 @@ struct FissionCommand : public Command {
     int m;
 
     FissionCommand(const Coord &d, int m) : d(d), m(m) {
-        assert(d.isShortDistance());
+        assert(d.isNeardistance());
     }
 
     virtual void checkPrecondition(const State &state, int botId) {
@@ -548,7 +549,7 @@ struct FusionPCommand : public Command {
     Coord d;
 
     FusionPCommand(const Coord &d) : d(d) {
-        assert(d.isShortDistance());
+        assert(d.isNeardistance());
     }
 
     virtual void checkPrecondition(const State &state, int botId) {
@@ -594,7 +595,7 @@ struct FusionSCommand : public Command {
     Coord d;
 
     FusionSCommand(const Coord &d) : d(d) {
-        assert(d.isShortDistance());
+        assert(d.isNeardistance());
     }
 
     virtual void checkPrecondition(const State &state, int botId) {
@@ -695,6 +696,7 @@ void run(Model* model, deque<Command *> &commands) {
     while (state->botCount() > 0) {
         runStep(*state, commands);
     }
+    assert(commands.empty());
     state->checkFinalState();
     
     cout << state->energy << endl;

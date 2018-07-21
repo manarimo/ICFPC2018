@@ -41,6 +41,7 @@ Nanachi
     <tr>
         <th>ID</th>
         <th>Energy</th>
+        <th>Energy(autoscorer)</th>
         <th>Author</th>
         <th>Comment</th>
         <th>Submit Date</th>
@@ -52,6 +53,7 @@ Nanachi
     <tr>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
         <td>{{ "%.3E"|format(trace['energy']) if trace['energy'] else "null" }}</td>
+        <td>{{ "%.3E"|format(trace['energy_autoscorer']) if trace['energy_autoscorer'] else "null" }}</td>
         <td>{{ trace['author'] }}</td>
         <td>{{ trace['comment'] }}</td>
         <td>{{ trace['submit_time_string'] }}</td>

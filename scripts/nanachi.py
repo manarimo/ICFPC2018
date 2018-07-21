@@ -45,16 +45,18 @@ def pending_traces():
 def best_traces():
     traces = {}
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, energy_autoscorer, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    autoscorer = request.args.get('autoscorer') == 'true'
+    key = "energy_autoscorer" if autoscorer else "energy"
     def energy_order(energy):
         return energy is None, energy
     for trace in cursor.fetchall():
         model_name = trace["model_name"]
         if model_name not in traces:
             traces[model_name] = trace
-        elif energy_order(trace["energy"]) < energy_order(traces[model_name]["energy"]):
+        elif energy_order(trace[key]) < energy_order(traces[model_name][key]):
             traces[model_name] = trace
     cursor.close()
     connection.commit()
@@ -75,7 +77,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]))
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]), autoscorer=autoscorer)
 
 
 @app.route("/traces/register", methods=["POST"])
@@ -157,7 +159,7 @@ def model_blob(name: str):
 def model_summary(name: str):
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
-        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
         "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
         "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
         (name,))
