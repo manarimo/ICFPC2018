@@ -29,8 +29,9 @@ const int MAX_B = 20;
 int R;
 bool hermonics;
 bool matrix[MAX_R][MAX_R][MAX_R];
-int turns_x[MAX_R][MAX_R];
-int turns_z[MAX_R][MAX_R];
+int sum[MAX_R + 1][MAX_R + 1][MAX_R + 1];
+int voxels_x[MAX_R][MAX_R];
+int voxels_z[MAX_R][MAX_R];
 int dp_x[MAX_R + 1][MAX_B + 1][2];
 int dp_z[MAX_R + 1][MAX_B + 1][2];
 
@@ -44,6 +45,15 @@ void read_input() {
             for (int k = 0; k < R; k++) {
                 int pos = i * R * R + j * R + k;
                 matrix[i][j][k] = ((buffer[pos / 8] >> (pos % 8)) & 1);
+            }
+        }
+    }
+    
+    for (int i = 0; i < R; i++) {
+        for (int j = 0; j < R; j++) {
+            for (int k = 0; k < R; k++) {
+                sum[i][j + 1][k + 1] = sum[i][j + 1][k] + sum[i][j][k + 1] - sum[i][j][k];
+                if (matrix[j][i][k]) sum[i][j + 1][k + 1]++;
             }
         }
     }
@@ -153,16 +163,7 @@ vector <pair<int, string>> put_floor(const rectangle& rect, position& p, int flo
     return traces;
 }
 
-int calc_turns(const rectangle& rect) {
-    int turns = 0;
-    position p(rect.x1, 0, rect.z1);
-    
-    for (int i = 0; i < R; i++) turns += put_floor(rect, p, i).size();
-    
-    return turns;
-}
-
-pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& turns, int direction) {
+pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& voxels, int direction) {
     long long energy = 0;
     vector <position> ps = {position(0, 0, 0)};
     vector <string> traces;
@@ -188,7 +189,7 @@ pair<long long, vector <string>> calc(vector <rectangle>& bots, vector <int>& tu
         }
         
         for (int i = 0; ; i++) {
-            maintain(energy, i);
+            maintain(energy, bots.size());
             
             bool remaining = false;
             for (int j = 0; j < bots.size(); j++) {
@@ -301,9 +302,11 @@ int main() {
     read_input();
     
     for (int i = 0; i < R; i++) {
-        for (int j = i; j < R; j++) {
-            turns_x[i][j] = calc_turns(rectangle(i, j, 0, R - 1));
-            turns_z[i][j] = calc_turns(rectangle(0, R - 1, i, j));
+        for (int j = 0; j < R; j++) {
+            for (int k = j; k < R; k++) {
+                voxels_x[j][k] += sum[i][k + 1][R] - sum[i][j][R] - sum[i][k + 1][0] + sum[i][j][0];
+                voxels_z[j][k] += sum[i][R][k + 1] - sum[i][R][j] - sum[i][0][k + 1] + sum[i][0][j];
+            }
         }
     }
     
@@ -320,12 +323,12 @@ int main() {
     for (int i = 0; i < R; i++) {
         for (int j = 0; j < MAX_B; j++) {
             for (int k = i + 1; k <= R; k++) {
-                if (max(dp_x[i][j][0], turns_x[i][k - 1]) < dp_x[k][j + 1][0]) {
-                    dp_x[k][j + 1][0] = max(dp_x[i][j][0], turns_x[i][k - 1]);
+                if (max(dp_x[i][j][0], voxels_x[i][k - 1]) < dp_x[k][j + 1][0]) {
+                    dp_x[k][j + 1][0] = max(dp_x[i][j][0], voxels_x[i][k - 1]);
                     dp_x[k][j + 1][1] = i;
                 }
-                if (max(dp_z[i][j][0], turns_z[i][k - 1]) < dp_z[k][j + 1][0]) {
-                    dp_z[k][j + 1][0] = max(dp_z[i][j][0], turns_z[i][k - 1]);
+                if (max(dp_z[i][j][0], voxels_z[i][k - 1]) < dp_z[k][j + 1][0]) {
+                    dp_z[k][j + 1][0] = max(dp_z[i][j][0], voxels_z[i][k - 1]);
                     dp_z[k][j + 1][1] = i;
                 }
             }
@@ -338,19 +341,19 @@ int main() {
     for (int i = 1; i <= MAX_B; i++) {
         int last = R, b = i;
         vector <rectangle> bots;
-        vector <int> turns;
+        vector <int> voxels;
         
         while (b > 0) {
             int parent = dp_x[last][b][1];
             bots.push_back(rectangle(parent, last - 1, 0, R - 1));
-            turns.push_back(turns_x[parent][last - 1]);
+            voxels.push_back(voxels_x[parent][last - 1]);
             last = parent;
             b--;
         }
         
         reverse(bots.begin(), bots.end());
         
-        pair<long long, vector <string>> tmp = calc(bots, turns, 0);
+        pair<long long, vector <string>> tmp = calc(bots, voxels, 0);
         if (tmp.first < best_energy) {
             best_energy = tmp.first;
             best_traces = tmp.second;
@@ -360,19 +363,19 @@ int main() {
     for (int i = 1; i <= MAX_B; i++) {
         int last = R, b = i;
         vector <rectangle> bots;
-        vector <int> turns;
+        vector <int> voxels;
         
         while (b > 0) {
             int parent = dp_z[last][b][1];
             bots.push_back(rectangle(0, R - 1, parent, last - 1));
-            turns.push_back(parent);
+            voxels.push_back(parent);
             last = parent;
             b--;
         }
         
         reverse(bots.begin(), bots.end());
         
-        pair<long long, vector <string>> tmp = calc(bots, turns, 1);
+        pair<long long, vector <string>> tmp = calc(bots, voxels, 1);
         if (tmp.first < best_energy) {
             best_energy = tmp.first;
             best_traces = tmp.second;
