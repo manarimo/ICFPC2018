@@ -22,6 +22,10 @@ P operator-(const P &a, const P &b) {
     return P{a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
+P operator-(const P &a) {
+    return P{-a.x, -a.y, -a.z};
+}
+
 bool operator==(const P &a, const P &b) {
     return a.x == b.x && a.y == b.y && a.z == b.z;
 }
@@ -59,7 +63,11 @@ struct bot {
 
     void moveXZOrWait(P dst) {
         P &p = pos;
-        if(dst.x - pos.x > 0) smove({min(dst.x - pos.x, 15), 0, 0});
+        int dx = dst.x - pos.x;
+        int dz = dst.z - pos.z;
+        if (dx != 0 && dz != 0 && abs(dx) <= 5 && abs(dz) <= 5) {
+            lmove({dx, 0, 0}, {0, 0, dz});
+        } else if(dst.x - pos.x > 0) smove({min(dst.x - pos.x, 15), 0, 0});
         else if(dst.x - pos.x < 0) smove({-min(pos.x - dst.x, 15), 0, 0});
         else if(dst.z - pos.z > 0) smove({0, 0, min(dst.z - pos.z, 15)});
         else if(dst.z - pos.z < 0) smove({0, 0, -min(pos.z - dst.z, 15)});
@@ -68,7 +76,11 @@ struct bot {
 
     void moveOrWait(P dst) {
         P &p = pos;
-        if(dst.x - pos.x > 0) smove({min(dst.x - pos.x, 15), 0, 0});
+        int dx = dst.x - pos.x;
+        int dz = dst.z - pos.z;
+        if (dx != 0 && dz != 0 && abs(dx) <= 5 && abs(dz) <= 5) {
+            lmove({dx, 0, 0}, {0, 0, dz});
+        } else if(dst.x - pos.x > 0) smove({min(dst.x - pos.x, 15), 0, 0});
         else if(dst.x - pos.x < 0) smove({-min(pos.x - dst.x, 15), 0, 0});
         else if(dst.y - pos.y > 0) smove({0, min(dst.y - pos.y, 15), 0});
         else if(dst.y - pos.y < 0) smove({0, -min(pos.y - dst.y, 15), 0});
@@ -207,6 +219,61 @@ void moveBots(vector<bot> &bots, int i, P dst) {
     }
 }
 
+void moveBotsXY(vector<bot> &bots, vector<P> dst) {
+    cerr << "move bots to dst" << endl;
+
+    while (1) {
+        vector<int> d(SEED), pos(R);
+        for (int i = 0; i < SEED; ++i) {
+            if (bots[i].active) cerr << "bot" << i << ": " << bots[i].pos << endl;
+        }
+
+        bool ok = true;
+        vector<int> cur(R);
+        for (int i = 0; i < SEED; ++i) {
+            if (!bots[i].active) continue;
+            if (cur[bots[i].pos.z]++ > 0) ok = false;
+        }
+        cerr << "1" << endl;
+        if (ok) break;
+        priority_queue<pair<int, int>> q;
+        for (int i = 0; i < SEED; ++i) {
+            if (!bots[i].active) continue;
+            q.push(make_pair(bots[i].pos.z, i));
+        }
+        cerr << "2" << endl;
+        int r = R - 1;
+        while (!q.empty() && r > 0) {
+            auto p = q.top();
+            q.pop();
+            while (r > 0 && pos[r]) r--;
+            int dz = max(min(r - p.first, 15), -15);
+            d[p.second] = dz;
+            pos[p.first + dz] = 1;
+            r = p.first + dz;
+        }
+        cerr << "3" << endl;
+        for (int i = 0; i < SEED; ++i) {
+            if (bots[i].active) {
+                bots[i].moveOrWait(bots[i].pos + P{0, 0, d[i]});
+            }
+        }
+    }
+
+    while (true) {
+        bool ok = true;
+        for (int i = 0; i < SEED; ++i) {
+            if (bots[i].active && P{dst[i].x, dst[i].y, bots[i].pos.z} != bots[i].pos) ok = false;
+        }
+        if (ok) break;
+        for (int j = 0; j < SEED; ++j) {
+            if (bots[j].active) {
+                bots[j].moveOrWait({dst[j].x, dst[j].y, bots[j].pos.z});
+            }
+        }
+    }
+}
+
 vector<int> calcBlockSum(int y) {
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
@@ -269,6 +336,38 @@ vector<int> addNext(vector<queue<P>> &q, int y) {
     return range;
 }
 
+bool connectable(int y) {
+    if (y == 0) return true;
+    queue<pair<int, int>> q;
+    vector<vector<int>> visit(R, vector<int>(R, 0));
+    int rem = 0;
+    for (int x = 1; x < R - 1; ++x) {
+        for (int z = 1; z < R - 1; ++z) {
+            rem += field[x][y][z];
+            if (field[x][y - 1][z]) {
+                q.push({x, z});
+                visit[x][z] = 1;
+            }
+        }
+    }
+
+    while (!q.empty()) {
+        auto p = q.front(); q.pop();
+
+        for (int d = 0; d < 4; ++ d) {
+            auto np = p;
+            np.first += dx[d];
+            np.second += dz[d];
+            if (!visit[np.first][np.second] && field[np.first][y][np.second]) {
+                visit[np.first][np.second] = 1;
+                q.push(np);
+            }
+        }
+        --rem;
+    }
+    return rem == 0;
+};
+
 int main() {
     input();
 
@@ -291,12 +390,13 @@ int main() {
             bots[j].wait();
         }
         bots[i + 1] = bots[i].fission({0, 0, 1}, SEED - 2 - i);
-        moveBots(bots, i + 1, {basew[i], 1, bots[i + 1].pos.z});
+        moveBots(bots, i + 1, {basew[i + 1], 1, bots[i + 1].pos.z});
     }
 
     cerr << "block" << endl;
     int cnt = 0;
     int curY = 1;
+    bool c = true;
     while (cnt < NUM) {
         bool ok = true;
         for (int i = 0; i < SEED; ++i) {
@@ -305,41 +405,69 @@ int main() {
 
         if (ok) {
             auto range = addNext(q, curY);
-            queue<int> nxt;
-            vector<int> done(SEED);
+//            queue<int> nxt;
+//            vector<int> done(SEED);
+//            for (int i = 0; i < SEED; ++i) {
+//                nxt.push(i);
+//            }
+//            while (!nxt.empty()) {
+////                cerr <<  bots[i].pos << " to " << P{range[i], curY + 1, bots[i].pos.z} << endl;
+//                int i = nxt.front();
+//                nxt.pop();
+//                if (i + 1 < SEED && !done[i+1] && bots[i+1].pos.x <= range[i]) {
+//                    nxt.push(i);
+//                    continue;
+//                }
+//                moveBots(bots, i, {range[i], curY, bots[i].pos.z});
+//                moveBots(bots, i, {range[i], curY + 1, bots[i].pos.z});
+//                done[i] = 1;
+//            }
+            vector<P> v;
             for (int i = 0; i < SEED; ++i) {
-                nxt.push(i);
+                if (bots[i].active) v.push_back({range[i], curY + 1, bots[i].pos.z});
             }
-            while (!nxt.empty()) {
-//                cerr <<  bots[i].pos << " to " << P{range[i], curY + 1, bots[i].pos.z} << endl;
-                int i = nxt.front();
-                nxt.pop();
-                if (i + 1 < SEED && !done[i+1] && bots[i+1].pos.x <= range[i]) {
-                    nxt.push(i);
-                    continue;
-                }
-                moveBots(bots, i, {range[i], curY, bots[i].pos.z});
-                moveBots(bots, i, {range[i], curY + 1, bots[i].pos.z});
-                done[i] = 1;
-            }
-
+            moveBotsXY(bots, v);
+            c = connectable(curY);
             ++curY;
         } else {
+            vector<int> wait(SEED);
 //            cerr << "place" << endl;
             // Check the status after placing blocks
             for (int i = 0; i < SEED; ++i) {
                 if (q[i].empty()) continue;
-                auto &p = q[i].front();
-                if (bots[i].pos == p + P({0, 1, 0})) {
-                    ++cnt;
-                    placed[p.x][p.y][p.z] = 1;
-                    if (p.y == 0) {
-                        uf.unite(f(p), f({0, 0, 0}));
-                    } else {
+                auto p = q[i].front();
+
+                if (bots[i].pos == p + P({0, 1, 0})
+                    || bots[i].pos == p + P({-1, 1, 0})
+                    || bots[i].pos == p + P({0, 1, -1})
+                    || bots[i].pos == p + P({1, 1, 0})
+                    || bots[i].pos == p + P({0, 1, 1})) {
+                    bool good = false;
+                    if (curY > 1) {
                         for (int d = 0; d < 5; ++d) {
                             P adj = p + P{dx[d], dy[d], dz[d]};
                             if (placed[adj.x][adj.y][adj.z]) {
-                                uf.unite(f(p), f(adj));
+                                good = true;
+                            }
+                        }
+                    } else {
+                        good = true;
+                    }
+                    if (!high && c && !good) {
+                        q[i].push(p);
+                        q[i].pop();
+                        wait[i] = 1;
+                    } else {
+                        ++cnt;
+                        placed[p.x][p.y][p.z] = 1;
+                        if (p.y == 0) {
+                            uf.unite(f(p), f({0, 0, 0}));
+                        } else {
+                            for (int d = 0; d < 5; ++d) {
+                                P adj = p + P{dx[d], dy[d], dz[d]};
+                                if (placed[adj.x][adj.y][adj.z]) {
+                                    uf.unite(f(p), f(adj));
+                                }
                             }
                         }
                     }
@@ -355,13 +483,19 @@ int main() {
 
             // Place or move
             for (int i = 0; i < SEED; ++i) {
-                if (q[i].empty()) {
+                if (q[i].empty() || wait[i]) {
+                    if (wait[i]) cerr << "waited: " << curY << endl;
                     bots[i].wait();
                     continue;
                 }
                 auto &p = q[i].front();
-                if (bots[i].pos == p + P({0, 1, 0})) {
-                    bots[i].fill({0, -1, 0});
+                if (bots[i].pos == p + P({0, 1, 0})
+                    || bots[i].pos == p + P({-1, 1, 0})
+                    || bots[i].pos == p + P({0, 1, -1})
+                    || bots[i].pos == p + P({1, 1, 0})
+                    || bots[i].pos == p + P({0, 1, 1})) {
+                    bots[i].fill(p - bots[i].pos);
+
                     q[i].pop();
                 } else {
                     bots[i].moveXZOrWait(p);
@@ -400,4 +534,3 @@ int main() {
 
     return 0;
 }
-
