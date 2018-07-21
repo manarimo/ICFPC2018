@@ -48,13 +48,15 @@ def best_traces():
     cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    autoscorer = request.args.get('autoscorer') == 'true'
+    key = "energy_autoscorer" if autoscorer else "energy"
     def energy_order(energy):
         return energy is None, energy
     for trace in cursor.fetchall():
         model_name = trace["model_name"]
         if model_name not in traces:
             traces[model_name] = trace
-        elif energy_order(trace["energy"]) < energy_order(traces[model_name]["energy"]):
+        elif energy_order(trace[key]) < energy_order(traces[model_name][key]):
             traces[model_name] = trace
     cursor.close()
     connection.commit()
@@ -75,7 +77,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]))
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]), autoscorer=autoscorer)
 
 
 @app.route("/traces/register", methods=["POST"])
