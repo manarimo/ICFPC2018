@@ -45,7 +45,7 @@ def pending_traces():
 def best_traces():
     traces = {}
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, energy_autoscorer, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
     autoscorer = request.args.get('autoscorer') == 'true'
