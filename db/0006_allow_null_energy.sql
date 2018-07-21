@@ -1,0 +1,1 @@
+ALTER TABLE tbltrace_metadata MODIFY COLUMN energy bigint(20) DEFAULT NULL;

@@ -13,7 +13,7 @@ def register(name: str, blob: bytes, energy: int, author: str, comment: str):
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT id FROM tblmodel WHERE name=%s", (name,))
     model_id = cursor.fetchone()["id"]
-    cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s)", (model_id, blob, -energy, digest))
+    cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s)", (model_id, blob, -energy if energy is not None else None, digest))
     trace_id = cursor.lastrowid
     cursor.execute("INSERT INTO tbltrace_metadata (trace_id, energy, author, comment) VALUES (%s, %s, %s, %s)", (trace_id, energy, author, comment))
     cursor.close()
@@ -26,9 +26,9 @@ def main():
     parser = ArgumentParser()
     parser.add_argument("model_name", help="model name. e.g. LA001")
     parser.add_argument("nobita", type=Path, help="nbt file")
-    parser.add_argument("energy", type=int, help="energy. use official checker to calculate!")
     parser.add_argument("author", help="author of the nbt")
-    parser.add_argument("comment", help="comment (if any)", default="")
+    parser.add_argument("--energy", type=int, help="energy. use official checker to calculate!", default=None)
+    parser.add_argument("--comment", help="comment (if any)", default="")
     args = parser.parse_args()
     with args.nobita.open("rb") as f:
         blob = f.read()

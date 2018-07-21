@@ -10,12 +10,14 @@ Nanachi
     </form>
 </div>
 <div>
-    <table class="table">
+    <table class="table" id="trace-list">
     <thead>
     <tr>
         <th>Model Name</th>
         <th>Trace ID</th>
         <th>Energy</th>
+        <th>Author</th>
+        <th>Comment</th>
     </tr>
     </thead>
     <tbody>
@@ -23,10 +25,20 @@ Nanachi
     <tr>
         <td><a href="{{ url_for('model_summary', name=trace['model_name']) }}">{{ trace['model_name'] }}</a> </td>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
-        <td>{{ trace['energy'] }}</td>
+        <td>{{ "%.3E"|format(trace['energy']) }}</td>
+        <td>{{ trace['author'] }}</td>
+        <td>{{ trace['comment'] }}</td>
     </tr>
     {% endfor %}
     </tbody>
 </table>
 </div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+        $('#trace-list').DataTable();
+    } );
+</script>
 {% endblock %}

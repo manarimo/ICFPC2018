@@ -5,6 +5,11 @@ Nanachi
 {% block content %}
 <h1>Model {{ name }}</h1>
 <div>
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-45deg.png" width="150">
+    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{name}}_tgt.mdl-up-315deg.png" width="150">
+</div>
+<div>
     <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
     {% if model %}
     <h2>Summary</h2>
@@ -31,11 +36,14 @@ Nanachi
 
 <h1>Trace List</h1>
 <div>
-    <table class="table">
+    <table class="table" id="trace-list">
     <thead>
     <tr>
         <th>ID</th>
         <th>Energy</th>
+        <th>Author</th>
+        <th>Comment</th>
+        <th>Submit Date</th>
         <th>Download</th>
     </tr>
     </thead>
@@ -43,7 +51,10 @@ Nanachi
     {% for trace in traces %}
     <tr>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
-        <td>{{ trace['energy'] }}</td>
+        <td>{{ "%.3E"|format(trace['energy']) }}</td>
+        <td>{{ trace['author'] }}</td>
+        <td>{{ trace['comment'] }}</td>
+        <td>{{ trace['submit_time_string'] }}</td>
         <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
     </tr>
     {% endfor %}
@@ -51,4 +62,12 @@ Nanachi
 </table>
 </div>
 
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+        $('#trace-list').DataTable();
+    } );
+</script>
 {% endblock %}

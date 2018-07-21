@@ -14,6 +14,7 @@ import api
 
 
 app = Flask(__name__, static_url_path="/static")
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 CORS(app)
 connection = get_connection()
 
@@ -27,16 +28,19 @@ def assets(path):
 def best_traces():
     traces = {}
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy "
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    def energy_order(energy):
+        return energy is None, energy
     for trace in cursor.fetchall():
         model_name = trace["model_name"]
         if model_name not in traces:
             traces[model_name] = trace
-        elif trace["energy"] < traces[model_name]["energy"]:
+        elif energy_order(trace["energy"]) < energy_order(traces[model_name]["energy"]):
             traces[model_name] = trace
     cursor.close()
+    connection.commit()
 
     if request.method == "POST":
         cursor = connection.cursor(dictionary=True)
@@ -46,6 +50,7 @@ def best_traces():
             blob = cursor.fetchone()[b"body"]
             blobs[trace["model_name"]] = blob
         cursor.close()
+        connection.commit()
         with NamedTemporaryFile() as zf:
             zipfile_path = Path(zf.name)
             submit.generate_zip(zipfile_path, blobs)
@@ -62,7 +67,10 @@ def trace_register():
         name = request.form["name"]
         author = request.form["author"]
         comment = request.form["comment"]
-        energy = int(request.form["energy"])
+        if "energy" in request.form:
+            energy = int(request.form["energy"])
+        else:
+            energy = None
         nbt_blob = request.files["nbt-blob"].read()
         trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
@@ -76,6 +84,7 @@ def trace_blob(trace_id: int):
     cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace_id,))
     blob = cursor.fetchone()[b"body"]
     cursor.close()
+    connection.commit()
     response = make_response(blob)
     response.headers.set('Content-Type', 'application/octet-stream')
     response.headers.set('Content-Disposition', 'attachment', filename='trace{}.nbt'.format(trace_id))
@@ -85,9 +94,18 @@ def trace_blob(trace_id: int):
 @app.route("/traces/<int:trace_id>")
 def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name` FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tbltrace.id=%s", (trace_id,))
+    cursor.execute(
+        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
+        "tm.submit_time AS submit_time "
+        "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
+        "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "WHERE tbltrace.id=%s",
+        (trace_id,))
     row = cursor.fetchone()
+    print(row)
+    row["submit_time_string"] = row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S')
     cursor.close()
+    connection.commit()
     return render_template("trace_summary.html", trace=row)
 
 
@@ -97,6 +115,7 @@ def model_blob(name: str):
     cursor.execute("SELECT body FROM tblmodel WHERE name=%s", (name,))
     blob = cursor.fetchone()[b"body"]
     cursor.close()
+    connection.commit()
     response = make_response(blob)
     response.headers.set('Content-Type', 'application/octet-stream')
     response.headers.set('Content-Disposition', 'attachment', filename='%s_tgt.mdl' % name)
@@ -107,12 +126,14 @@ def model_blob(name: str):
 def model_summary(name: str):
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
-        "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
-        "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy",
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
+        "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy",
         (name,))
     tracerows = tracecursor.fetchall()
+    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
     tracecursor.close()
+    connection.commit()
 
     modelcursor = connection.cursor(dictionary=True)
     modelcursor.execute(
@@ -126,6 +147,7 @@ def model_summary(name: str):
           (name,))
     model = modelcursor.fetchone()
     modelcursor.close()
+    connection.commit()
 
     return render_template('model_summary.html', name=name, traces=tracerows, model=model)
 
@@ -142,6 +164,8 @@ def model_list():
     cursor.execute(get_list_sql)
     rows = cursor.fetchall()
     cursor.close()
+    connection.commit()
+
     return render_template("model_list.html", models=rows)
 
 
