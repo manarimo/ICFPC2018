@@ -1,7 +1,8 @@
 # メイドインアビスをみて
+import json
 from pathlib import Path
 
-from flask import Flask, render_template, make_response, send_from_directory, request, redirect, url_for
+from flask import Flask, render_template, make_response, send_from_directory, request, redirect, url_for, Response
 from flask_cors import CORS
 from db import get_connection
 import const
@@ -57,11 +58,14 @@ def best_traces():
 
 @app.route("/traces/register", methods=["POST"])
 def trace_register():
-    name = request.form["name"]
-    energy = int(request.form["energy"])
-    nbt_blob = request.files["nbt-blob"].read()
-    trace_id = register_trace.register(name, nbt_blob, energy)
-    return redirect(url_for("trace_summary", trace_id=trace_id))
+    try:
+        name = request.form["name"]
+        energy = int(request.form["energy"])
+        nbt_blob = request.files["nbt-blob"].read()
+        trace_id = register_trace.register(name, nbt_blob, energy)
+        return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
+    except Exception as e:
+        return Response(json.dumps({"status": "failure", "trace_id": str(e)}), content_type='application/json')
 
 
 @app.route("/traces/<int:trace_id>/blob")
