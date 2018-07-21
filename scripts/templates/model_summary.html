@@ -6,6 +6,27 @@ Nanachi
 <h1>Model {{ name }}</h1>
 <div>
     <a href="{{ url_for('model_blob', name=name) }}">Download mdl file</a>
+    {% if model %}
+    <h2>Summary</h2>
+    <table class="table">
+    <thead>
+    <tr>
+        <td>R</td>
+        <td>Fill</td>
+        <td>#Components</td>
+        <td>#Void spaces</td>
+        <td>Max Depth</td>
+    </tr>
+    </thead>
+    <tbody>
+        <td>{{ model.r }}</td>
+        <td>{{ model.fill_count }}</td>
+        <td>{{ model.num_components }}</td>
+        <td>{{ model.num_void_spaces }}</td>
+        <td>{{ model.max_depth }}</td>
+    </tbody>
+    </table>
+    {% endif %}
 </div>
 
 <h1>Trace List</h1>
