@@ -16,6 +16,8 @@ Nanachi
         <th>Model Name</th>
         <th>Trace ID</th>
         <th>Energy</th>
+        <th>author</th>
+        <th>comment</th>
     </tr>
     </thead>
     <tbody>
@@ -24,6 +26,8 @@ Nanachi
         <td><a href="{{ url_for('model_summary', name=trace['model_name']) }}">{{ trace['model_name'] }}</a> </td>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
         <td>{{ trace['energy'] }}</td>
+        <td>{{ trace['author'] }}</td>
+        <td>{{ trace['comment'] }}</td>
     </tr>
     {% endfor %}
     </tbody>

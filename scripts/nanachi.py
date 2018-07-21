@@ -27,7 +27,7 @@ def assets(path):
 def best_traces():
     traces = {}
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy "
+    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
     for trace in cursor.fetchall():
@@ -85,8 +85,16 @@ def trace_blob(trace_id: int):
 @app.route("/traces/<int:trace_id>")
 def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name` FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tbltrace.id=%s", (trace_id,))
+    cursor.execute(
+        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, "
+        "tm.submit_time AS submit_time "
+        "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
+        "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "WHERE tbltrace.id=%s",
+        (trace_id,))
     row = cursor.fetchone()
+    print(row)
+    row["submit_time_string"] = row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S')
     cursor.close()
     return render_template("trace_summary.html", trace=row)
 
