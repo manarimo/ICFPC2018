@@ -1,6 +1,7 @@
 package hissen;
 
 import command.Command;
+import data.FarDistance;
 import data.LongLinearDistance;
 import data.NearDistance;
 import data.ShortLinearDistance;
@@ -111,6 +112,29 @@ public class Hissen {
                 }
                 final NearDistance nd4 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
                 return new Command.Fill(nd4);
+
+            case "void":
+                if (array.length != 4) {
+                    throw HissenParseException.byParamNum(lineNumber, line);
+                }
+                final NearDistance nd5 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                return new Command.Void(nd5);
+
+            case "gfill":
+                if (array.length != 7) {
+                    throw HissenParseException.byParamNum(lineNumber, line);
+                }
+                final NearDistance nd6 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                final FarDistance fd6 = FarDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                return new Command.GFill(nd6, fd6);
+
+            case "gvoid":
+                if (array.length != 7) {
+                    throw HissenParseException.byParamNum(lineNumber, line);
+                }
+                final NearDistance nd7 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                final FarDistance fd7 = FarDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                return new Command.GVoid(nd7, fd7);
         }
         throw HissenParseException.byUnknownCommand(lineNumber, commandName, line);
     }

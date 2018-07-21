@@ -1,5 +1,6 @@
 package command;
 
+import data.FarDistance;
 import data.LongLinearDistance;
 import data.NearDistance;
 import data.ShortLinearDistance;
@@ -124,6 +125,61 @@ public interface Command {
         public byte[] encode() {
             final byte[] bytes = new byte[1];
             bytes[0] = (byte) (nd.enc << 3 | 0x3);
+            return bytes;
+        }
+    }
+
+    class Void implements Command {
+        private final NearDistance nd;
+
+        public Void(final NearDistance nd) {
+            this.nd = nd;
+        }
+
+        @Override
+        public byte[] encode() {
+            final byte[] bytes = new byte[1];
+            bytes[0] = (byte) (nd.enc << 3 | 0x2);
+            return bytes;
+        }
+    }
+
+    class GFill implements Command {
+        private final NearDistance nd;
+        private final FarDistance fd;
+
+        public GFill(final NearDistance nd, final FarDistance fd) {
+            this.nd = nd;
+            this.fd = fd;
+        }
+
+        @Override
+        public byte[] encode() {
+            final byte[] bytes = new byte[4];
+            bytes[0] = (byte) (nd.enc << 3 | 0x1);
+            bytes[1] = (byte) fd.dx;
+            bytes[2] = (byte) fd.dy;
+            bytes[3] = (byte) fd.dz;
+            return bytes;
+        }
+    }
+
+    class GVoid implements Command {
+        private final NearDistance nd;
+        private final FarDistance fd;
+
+        public GVoid(final NearDistance nd, final FarDistance fd) {
+            this.nd = nd;
+            this.fd = fd;
+        }
+
+        @Override
+        public byte[] encode() {
+            final byte[] bytes = new byte[4];
+            bytes[0] = (byte) (nd.enc << 3);
+            bytes[1] = (byte) fd.dx;
+            bytes[2] = (byte) fd.dy;
+            bytes[3] = (byte) fd.dz;
             return bytes;
         }
     }
