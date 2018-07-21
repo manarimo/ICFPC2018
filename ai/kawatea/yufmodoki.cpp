@@ -728,13 +728,13 @@ int main() {
     read_input();
     
     vector <int> mutations = {0};
-    for (int i = 1; i < R; i += 2) {
+    for (int i = 1; i < R; i++) {
         if (sum[i][R][R] == 0) {
             mutations.push_back(i);
             break;
         }
         
-        mutations.push_back(i);
+        if (i - mutations.back() == 3) mutations.push_back(i);
     }
     
     for (int i = 0; i < mutations.size(); i++) {
