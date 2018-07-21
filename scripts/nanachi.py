@@ -90,7 +90,7 @@ def trace_blob(trace_id: int):
 def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
-        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, "
+        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
         "tm.submit_time AS submit_time "
         "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
         "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
