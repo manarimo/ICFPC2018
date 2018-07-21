@@ -53,7 +53,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=traces.values())
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["energy"]))
 
 
 @app.route("/traces/register", methods=["POST"])
@@ -107,7 +107,7 @@ def model_summary(name: str):
     tracecursor.execute(
         "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
         "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s",
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tblmodel.name",
         (name,))
     tracerows = tracecursor.fetchall()
     tracecursor.close()
