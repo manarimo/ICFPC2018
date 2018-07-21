@@ -10,7 +10,7 @@ Nanachi
     </form>
 </div>
 <div>
-    <table class="table">
+    <table class="table" id="trace-list">
     <thead>
     <tr>
         <th>Model Name</th>
@@ -33,4 +33,12 @@ Nanachi
     </tbody>
 </table>
 </div>
+{% endblock %}
+
+{% block script %}
+<script type="text/javascript" charset="utf-8">
+    $(document).ready(function() {
+        $('#trace-list').DataTable();
+    } );
+</script>
 {% endblock %}
