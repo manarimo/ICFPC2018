@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
         await waitUntilSuccess();
         const energy = stdout.innerText.match(/Energy:\s+(\d+)/)[1];
         const modelIn = document.getElementById('tgtModelFileIn');
+        const author = document.getElementById('author').value;
+        const comment = document.getElementById('comment').value;
         const m = modelIn.files[0].name.match(/^(.+)_tgt.mdl$/);
         if (!m) {
             stdout.innerHTML += '<p style="color: red">Upload error: model file name must match /^(.+)_tgt.mdl</p>';
@@ -33,6 +35,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const formData = new FormData();
             formData.append('name', name);
             formData.append('energy', energy);
+            formData.append('author', author);
+            formData.append('comment', comment);
             console.log(e.target.result);
             formData.append('nbt-blob', new Blob([e.target.result]));
             console.log(formData);

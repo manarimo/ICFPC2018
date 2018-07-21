@@ -4,7 +4,7 @@ from db import get_connection
 from hashlib import sha1
 
 
-def register(name: str, blob: bytes, energy: int):
+def register(name: str, blob: bytes, energy: int, author: str, comment: str):
     hasher = sha1()
     hasher.update(blob)
     digest = hasher.digest()
@@ -15,7 +15,7 @@ def register(name: str, blob: bytes, energy: int):
     model_id = cursor.fetchone()["id"]
     cursor.execute("INSERT INTO tbltrace (model_id, body, score, sha1) VALUES (%s, %s, %s, %s)", (model_id, blob, -energy, digest))
     trace_id = cursor.lastrowid
-    cursor.execute("INSERT INTO tbltrace_metadata (trace_id, energy) VALUES (%s, %s)", (trace_id, energy))
+    cursor.execute("INSERT INTO tbltrace_metadata (trace_id, energy, author, comment) VALUES (%s, %s, %s, %s)", (trace_id, energy, author, comment))
     cursor.close()
     connection.commit()
     connection.close()
@@ -27,10 +27,12 @@ def main():
     parser.add_argument("model_name", help="model name. e.g. LA001")
     parser.add_argument("nobita", type=Path, help="nbt file")
     parser.add_argument("energy", type=int, help="energy. use official checker to calculate!")
+    parser.add_argument("author", help="author of the nbt")
+    parser.add_argument("comment", help="comment (if any)", default="")
     args = parser.parse_args()
     with args.nobita.open("rb") as f:
         blob = f.read()
-    trace_id = register(args.model_name, blob, args.energy)
+    trace_id = register(args.model_name, blob, args.energy, args.author, args.comment)
     print("registered trace_id: {}".format(trace_id))
 
 

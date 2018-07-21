@@ -60,9 +60,11 @@ def best_traces():
 def trace_register():
     try:
         name = request.form["name"]
+        author = request.form["author"]
+        comment = request.form["comment"]
         energy = int(request.form["energy"])
         nbt_blob = request.files["nbt-blob"].read()
-        trace_id = register_trace.register(name, nbt_blob, energy)
+        trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
         return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
