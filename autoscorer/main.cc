@@ -33,7 +33,7 @@ struct DisjointSet {
         }
         if (size[ri] > size[rj]) {
             root[rj] = root[ri];
-            size[rj] += size[ri];
+            size[ri] += size[rj];
         } else {
             root[ri] = root[rj];
             size[rj] += size[ri];
@@ -142,8 +142,10 @@ struct State {
     Harmonics harmonics;
     int r;
     DisjointSet ds;
+    int ground;
+    int filled;
 
-    State(int r) : energy(0), harmonics(LOW), r(r), ds(250 * 250 * 250) {
+    State(int r) : energy(0), harmonics(LOW), r(r), ds(r * r * r + 1), ground(r * r * r), filled(0) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -218,22 +220,33 @@ struct State {
     }
 
     int hashCoord(const Coord &p) {
-        return p.x * 250 * 250 + p.y * 250 + p.z;
+        return p.x * r * r + p.y * r + p.z;
     }
 
     void connect(const Coord &p1, const Coord &p2) {
         ds.unite(hashCoord(p1), hashCoord(p2));
     }
 
+    void connectToGround(const Coord &p1) {
+        ds.unite(hashCoord(p1), ground);
+    }
+
     void fill(const Coord &p) {
         assert(isValidPoint(p));
-        field[p.x][p.y][p.z] = true;
-        connect(p, p + Coord{1, 0, 0});
-        connect(p, p + Coord{-1, 0, 0});
-        connect(p, p + Coord{0, 1, 0});
-        connect(p, p + Coord{0, -1, 0});
-        connect(p, p + Coord{0, 0, 1});
-        connect(p, p + Coord{0, 0, -1});
+        if (field[p.x][p.y][p.z] == false) {
+            field[p.x][p.y][p.z] = true;
+            filled++;
+        }
+
+        for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+            Coord q = p + c;
+            if (isValidPoint(q) && field[q.x][q.y][q.z]) {
+                connect(p, q);
+            }
+        }
+        if (p.y == 0) {
+            connectToGround(p);
+        }
     }
 
     void checkMove(const Coord &coord, const Coord &d) const {
@@ -256,26 +269,7 @@ struct State {
     }
 
     void checkPhysics() {
-        set<int> grounds;
-        for (int x = 0; x < r; ++x) {
-            for (int z = 0; z < r; ++z) {
-                const Coord coord = Coord{x, 0, z};
-                if (isFilled(coord)) {
-                    grounds.insert(ds.get(hashCoord(coord)));
-                }
-            }
-        }
-        for (int x = 0; x < r; ++x) {
-            for (int y = 0; y < r; ++y) {
-                for (int z = 0; z < r; ++z) {
-                    const Coord coord = Coord{x, y, z};
-                    if (isFilled(coord)) {
-                        const int root = ds.get(hashCoord(coord));
-                        assert(grounds.find(root) != grounds.end());
-                    }
-                }
-            }
-        }
+        assert(ds.size[ds.get(ground)] == filled + 1);
     }
 };
 
@@ -667,6 +661,7 @@ void run(int r, deque<Command *> &commands) {
     while (state->botCount() > 0) {
         runStep(*state, commands);
     }
+    
     cout << state->energy << endl;
 }
 
@@ -744,7 +739,7 @@ deque<Command*> compile(const string filename) {
         } else if ((b1 & 0x07) == 0b011) {
             commands.push_back(new FillCommand(decodeNearDistance(b1 >> 3)));
         }
-        cout << *commands.back() << endl;
+        //cout << *commands.back() << endl;
     }
     return commands;
 }
@@ -755,12 +750,14 @@ int main(int argc, char **argv) {
         return 1;
     }
     int size = readModelResolution(string(argv[1]));
+    cerr << "Compiling..." << endl;
     deque <Command*> commands = compile(string(argv[2]));
     /*
     for (auto command : commands) {
         cout << (*command) << endl;
     }
      */
+    cerr << "Running..." << endl;
     run(size, commands);
     return 0;
 }
