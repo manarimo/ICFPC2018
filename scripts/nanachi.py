@@ -38,6 +38,7 @@ def best_traces():
         elif trace["energy"] < traces[model_name]["energy"]:
             traces[model_name] = trace
     cursor.close()
+    connection.commit()
 
     if request.method == "POST":
         cursor = connection.cursor(dictionary=True)
@@ -47,6 +48,7 @@ def best_traces():
             blob = cursor.fetchone()[b"body"]
             blobs[trace["model_name"]] = blob
         cursor.close()
+        connection.commit()
         with NamedTemporaryFile() as zf:
             zipfile_path = Path(zf.name)
             submit.generate_zip(zipfile_path, blobs)
@@ -77,6 +79,7 @@ def trace_blob(trace_id: int):
     cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace_id,))
     blob = cursor.fetchone()[b"body"]
     cursor.close()
+    connection.commit()
     response = make_response(blob)
     response.headers.set('Content-Type', 'application/octet-stream')
     response.headers.set('Content-Disposition', 'attachment', filename='trace{}.nbt'.format(trace_id))
@@ -97,6 +100,7 @@ def trace_summary(trace_id: int):
     print(row)
     row["submit_time_string"] = row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S')
     cursor.close()
+    connection.commit()
     return render_template("trace_summary.html", trace=row)
 
 
@@ -106,6 +110,7 @@ def model_blob(name: str):
     cursor.execute("SELECT body FROM tblmodel WHERE name=%s", (name,))
     blob = cursor.fetchone()[b"body"]
     cursor.close()
+    connection.commit()
     response = make_response(blob)
     response.headers.set('Content-Type', 'application/octet-stream')
     response.headers.set('Content-Disposition', 'attachment', filename='%s_tgt.mdl' % name)
@@ -122,6 +127,7 @@ def model_summary(name: str):
         (name,))
     tracerows = tracecursor.fetchall()
     tracecursor.close()
+    connection.commit()
 
     modelcursor = connection.cursor(dictionary=True)
     modelcursor.execute(
@@ -135,6 +141,7 @@ def model_summary(name: str):
           (name,))
     model = modelcursor.fetchone()
     modelcursor.close()
+    connection.commit()
 
     return render_template('model_summary.html', name=name, traces=tracerows, model=model)
 
@@ -151,6 +158,8 @@ def model_list():
     cursor.execute(get_list_sql)
     rows = cursor.fetchall()
     cursor.close()
+    connection.commit()
+
     return render_template("model_list.html", models=rows)
 
 
