@@ -157,7 +157,7 @@ def model_blob(name: str):
 def model_summary(name: str):
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
-        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
         "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
         "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
         (name,))
