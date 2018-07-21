@@ -121,11 +121,12 @@ def model_blob(name: str):
 def model_summary(name: str):
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
-        "SELECT tbltrace_metadata.trace_id, tbltrace_metadata.energy "
-        "FROM tbltrace JOIN tbltrace_metadata ON tbltrace.id = tbltrace_metadata.trace_id "
-        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tbltrace_metadata.energy",
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time "
+        "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy",
         (name,))
     tracerows = tracecursor.fetchall()
+    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
     tracecursor.close()
     connection.commit()
 

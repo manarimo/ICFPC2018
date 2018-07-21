@@ -41,6 +41,9 @@ Nanachi
     <tr>
         <th>ID</th>
         <th>Energy</th>
+        <th>Author</th>
+        <th>Comment</th>
+        <th>Submit Date</th>
         <th>Download</th>
     </tr>
     </thead>
@@ -49,6 +52,10 @@ Nanachi
     <tr>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a></td>
         <td>{{ "%.3E"|format(trace['energy']) }}</td>
+        <td>{{ trace['energy'] }}</td>
+        <td>{{ trace['author'] }}</td>
+        <td>{{ trace['comment'] }}</td>
+        <td>{{ trace['submit_time_string'] }}</td>
         <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
     </tr>
     {% endfor %}
