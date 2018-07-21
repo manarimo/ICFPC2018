@@ -22,7 +22,7 @@ def assets(path):
 def trace_register():
     name = request.form["name"]
     energy = int(request.form["energy"])
-    nbt_blob = request.form["nbt-blob"]
+    nbt_blob = request.files["nbt-blob"].read()
     trace_id = register_trace.register(name, nbt_blob, energy)
     return redirect(url_for("trace_summary", trace_id=trace_id))
 
