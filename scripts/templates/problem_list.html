@@ -18,7 +18,9 @@ Nanachi
     <tbody>
     {% for problem in problems %}
     <tr>
-        <td>{{ problem['name'] }}</td>
+        <td>
+            <a href="{{ url_for('problem_summary', name=problem['name']) }}">{{ problem['name'] }}</a>
+        </td>
         <td>{{ problem['type'] }}</td>
         <td>
             {% if problem['src_name'] %}
