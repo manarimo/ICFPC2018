@@ -33,10 +33,10 @@ traces['traces'].each do |trace|
 
   if src_mdl_file && tgt_mdl_file
     puts "This is reassembly problem"
-    score = `../autoscorer/autoscorer #{skip_check ? '--aperture-science-dangerously-skip-sanity-check' : ''} --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}`
+    score = `../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}`
   elsif src_mdl_file
     puts "This is disassembly problem"
-    score = `../autoscorer/autoscorer #{skip_check ? '--aperture-science-dangerously-skip-sanity-check' : ''} --disassembly #{src_mdl_file} #{nbt_file}`
+    score = `../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --disassembly #{src_mdl_file} #{nbt_file}`
   else
     puts "This is assembly problem"
     score = `../autoscorer/autoscorer #{tgt_mdl_file} #{nbt_file}`
