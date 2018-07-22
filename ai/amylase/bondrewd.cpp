@@ -486,6 +486,9 @@ vector<command> input(istream &is) {
             position p1, p2;
             is >> p1 >> p2;
             commands.push_back(gvoid(p1, p2));
+        } else if (mnemonic == "---") {
+            // comment
+            continue;
         } else {
             throw "unknown mneamonic " + mnemonic;
         }
@@ -613,6 +616,11 @@ struct Step {
 
 //============= OPTIMIZER STAGES ====================
 
+
+vector<Step> dependencyOptimization(vector<Step> &step) {
+
+}
+
 vector<Step> eagerExecution(vector<Step> &steps) {
     vector<Step> new_steps = steps;
     for (int turn = (int)new_steps.size() - 2; turn >= 0; --turn) {
@@ -643,12 +651,15 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             auto bot = new_steps[turn].state.bots[bot_id];
             auto new_vcs = bot.volatileCoordinates(command);
             bool ok = true;
-            for (auto &&vc : new_vcs) {
-                if (vc != bot.p && vcs[vc.x][vc.y][vc.z]) {
-                    ok = false;
-                    break;
+            if (command.op != FUSIONP) { // we can skip this when fusionp.
+                for (auto &&vc : new_vcs) {
+                    if (vc != bot.p && vcs[vc.x][vc.y][vc.z]) {
+                        ok = false;
+                        break;
+                    }
                 }
             }
+
             if (not ok) {
                 // vc collision
                 continue;
