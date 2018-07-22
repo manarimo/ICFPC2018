@@ -114,19 +114,6 @@ pair<P, P> toLmove(const P &p, DIR d1, DIR d2) {
     return make_pair(toSmove(p, d1), toSmove(p, d2));
 }
 
-pair<P, P> toLmoveAnyOrder(const P &p) {
-    switch (checkMove(p)) {
-        case LMOVE_X_Y:
-            return make_pair(toSmove(p.x, X), toSmove(p.y, Y));
-        case LMOVE_Y_Z:
-            return make_pair(toSmove(p.y, Y), toSmove(p.z, Z));
-        case LMOVE_Z_X:
-            return make_pair(toSmove(p.z, Z), toSmove(p.x, X));
-        default:
-            assert(false);
-    }
-}
-
 int vol[RMAX][RMAX][RMAX];
 int returnDist[RMAX][RMAX][RMAX];
 
@@ -359,7 +346,7 @@ vector<int> calcBlockSum(int y, int xs) {
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
         for (int z = 0; z < R; ++z) {
-//            if (!field[x][y][z]) continue;
+            if (!field[x][y][z]) continue;
             int r = z;
             while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
             ++block[x];
@@ -533,7 +520,7 @@ void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot
 
 const function<bool(bot &)> NOP = [](bot b) { return false; };
 
-void addConectivity(const P &src, const P &dst, UnionFind &uf) {
+void addConnectivity(const P &src, const P &dst, UnionFind &uf) {
     for (int x = min(src.x, dst.x); x <= max(src.x, dst.x); ++x) {
         for (int y = min(src.y, dst.y); y <= max(src.y, dst.y); ++y) {
             for (int z = min(src.z, dst.z); z <= max(src.z, dst.z); ++z) {
@@ -575,8 +562,8 @@ int main() {
 
     vector<P> dst;
     for (int i = 0; i < SEED / 2; ++i) {
-        dst.push_back(P{range[i], rand() % min(R, 20), 0});
-        dst.push_back(P{range[i], rand() % min(R, 20), R - 1});
+        dst.push_back(P{range[i], rand() % min(R, 3) + 1, 0});
+        dst.push_back(P{range[i], rand() % min(R, 3) + 1, R - 1});
     }
 
     int turn = 1;
@@ -663,8 +650,8 @@ int main() {
             cerr << "placed " << cnt << "/" << NUM << " so far" << endl;
             range = addNext(q, curY);
             for (int i = 0; i < SEED / 2; ++i) {
-                dst.push_back(P{range[i], curY + 1, 0});
-                dst.push_back(P{range[i], curY + 1, R - 1});
+                dst[i] = (P{range[i], curY + 1, 0});
+                dst[i] = (P{range[i], curY + 1, R - 1});
             }
             curY++;
             continue;
@@ -713,7 +700,7 @@ int main() {
                 q[b].pop();
                 cnt += abs(bedge - aedge) + 1;
                 fillVolatile(aedge, bedge, INF);
-                addConectivity(bedge, aedge, uf);
+                addConnectivity(bedge, aedge, uf);
             }
         }
         for (int i = 0; i < SEED; ++i) {
