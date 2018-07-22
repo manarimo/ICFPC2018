@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <queue>
+#include <set>
 #include <string>
 #include <algorithm>
 
@@ -337,6 +338,18 @@ bool grounded(const region& box) {
     }
     
     return uf.size(uf.ground()) == voxel + 1;
+}
+
+set <int> get_empty(const rectangle& rect) {
+    set <int> empty;
+    for (int x = rect.x1; x <= rect.x2; x++) {
+        for (int y = 0; y <= R; y++) {
+            for (int z = rect.z1; z <= rect.z2; z++) {
+                if (matrix[x][y][z]) empty.insert(y);
+            }
+        }
+    }
+    return empty;
 }
 
 vector <command> get_moves(position p) {
@@ -844,106 +857,121 @@ vector <command> calc_large(const region& box, const position& p) {
         int z = 0;
         while (true) {
             int x = 0;
-            int dz = min(29, p.z + 1 - z);
+            int dz = min(29, p.z - z);
             while (true) {
                 int y = p.y + 1;
-                int dx = min(29, p.x + 1 - x);
+                int dx = min(29, p.x - x);
+                set <int> empty = get_empty(rectangle(box.p1.x + x, box.p1.x + x + dx, box.p1.z + z, box.p1.z + z + dz));
                 
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Fission(0, -1, 0, 0));
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                
-                vector <command> moves_fission = get_moves(position(0, -min(30, p.y), 0));
-                for (int i = 0; i < moves_fission.size(); i++) {
-                    for (int j = 0; j < 9; j++) {
-                        if (i == 0 && j == 1) {
-                            traces.push_back(SMove(0, -1, 0));
-                        } else if (i == 0 && j == 2) {
-                            traces.push_back(LMove(-1, 0, 0, 0, 0, -1));
-                        } else if (j == 3) {
-                            traces.push_back(moves_fission[i]);
-                        } else {
-                            traces.push_back(Wait());
-                        }
-                    }
-                }
-                
-                while (true) {
-                    int dy = min(30, y - 1);
+                if (!empty.empty()) {
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Fission(0, -1, 0, 0));
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
                     
-                    traces.push_back(GVoid(1, 0, 1, dx, -dy, dz));
-                    traces.push_back(GVoid(-1, 0, 1, -dx, -dy, dz));
-                    traces.push_back(GVoid(0, -1, 0, -dx, -dy, -dz));
-                    traces.push_back(GVoid(-1, 0, -1, -dx, dy, -dz));
-                    traces.push_back(GVoid(-1, 0, 1, -dx, dy, dz));
-                    traces.push_back(GVoid(1, -1, 0, dx, -dy, -dz));
-                    traces.push_back(GVoid(1, 0, 0, dx, dy, -dz));
-                    traces.push_back(GVoid(1, 0, 1, dx, dy, dz));
-                    
-                    for (int i = 0; i <= dx; i++) {
-                        for (int j = 0; j <= dy; j++) {
-                            for (int k = 0; k <= dz; k++) {
-                                int nx = box.p1.x + x + i;
-                                int ny = y - dy - 1 + j;
-                                int nz = box.p1.z + z + k;
-                                matrix[nx][ny][nz] = false;
+                    vector <command> moves_fission = get_moves(position(0, -min(30, p.y), 0));
+                    for (int i = 0; i < moves_fission.size(); i++) {
+                        for (int j = 0; j < 9; j++) {
+                            if (i == 0 && j == 1) {
+                                traces.push_back(SMove(0, -1, 0));
+                            } else if (i == 0 && j == 2) {
+                                traces.push_back(LMove(-1, 0, 0, 0, 0, -1));
+                            } else if (j == 3) {
+                                traces.push_back(moves_fission[i]);
+                            } else {
+                                traces.push_back(Wait());
                             }
                         }
                     }
-                    if (grounded(box) == hermonics) {
-                        hermonics = !hermonics;
-                        traces.push_back(Flip());
-                    } else {
-                        traces.push_back(Wait());
+                    
+                    while (true) {
+                        int dy = min(30, y - 1);
+                        
+                        bool should_void = false;
+                        for (int i = 0; i <= dy; i++) {
+                            int ny = y - dy - 1 + i;
+                            if (empty.count(ny)) {
+                                should_void = true;
+                                break;
+                            }
+                        }
+                        
+                        if (should_void) {
+                            traces.push_back(GVoid(1, 0, 1, dx, -dy, dz));
+                            traces.push_back(GVoid(-1, 0, 1, -dx, -dy, dz));
+                            traces.push_back(GVoid(0, -1, 0, -dx, -dy, -dz));
+                            traces.push_back(GVoid(-1, 0, -1, -dx, dy, -dz));
+                            traces.push_back(GVoid(-1, 0, 1, -dx, dy, dz));
+                            traces.push_back(GVoid(1, -1, 0, dx, -dy, -dz));
+                            traces.push_back(GVoid(1, 0, 0, dx, dy, -dz));
+                            traces.push_back(GVoid(1, 0, 1, dx, dy, dz));
+                            
+                            for (int i = 0; i <= dx; i++) {
+                                for (int j = 0; j <= dy; j++) {
+                                    for (int k = 0; k <= dz; k++) {
+                                        int nx = box.p1.x + x + i;
+                                        int ny = y - dy - 1 + j;
+                                        int nz = box.p1.z + z + k;
+                                        matrix[nx][ny][nz] = false;
+                                        empty.erase(ny);
+                                    }
+                                }
+                            }
+                            if (grounded(box) == hermonics) {
+                                hermonics = !hermonics;
+                                traces.push_back(Flip());
+                            } else {
+                                traces.push_back(Wait());
+                            }
+                        }
+                        
+                        if (y <= 31 || empty.empty()) break;
+                        
+                        dy = min(30, y - dy - 1);
+                        y -= dy;
+                        
+                        vector <command> moves_y = get_moves(position(0, -dy, 0));
+                        for (int i = 0; i < moves_y.size(); i++) {
+                            for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
+                            traces.push_back(Wait());
+                        }
                     }
                     
-                    if (y <= 31) break;
-                    
-                    dy = min(30, y - dy - 1);
-                    y -= dy;
-                    
-                    vector <command> moves_y = get_moves(position(0, -dy, 0));
+                    vector <command> moves_y = get_moves(position(0, p.y + 1 - y, 0));
                     for (int i = 0; i < moves_y.size(); i++) {
                         for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
                         traces.push_back(Wait());
                     }
-                }
-                
-                vector <command> moves_y = get_moves(position(0, p.y + 1 - y, 0));
-                for (int i = 0; i < moves_y.size(); i++) {
-                    for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
-                    traces.push_back(Wait());
-                }
-                
-                vector <command> moves_fusion = get_moves(position(0, min(30, p.y), 0));
-                for (int i = 0; i < moves_fusion.size(); i++) {
-                    for (int j = 0; j < 9; j++) {
-                        if (i + 1 == moves_fusion.size() && j == 1) {
-                            traces.push_back(SMove(0, 1, 0));
-                        } else if (i + 1 == moves_fusion.size() && j == 2) {
-                            traces.push_back(LMove(1, 0, 0, 0, 0, 1));
-                        } else if (j == 3) {
-                            traces.push_back(moves_fusion[i]);
-                        } else {
-                            traces.push_back(Wait());
+                    
+                    vector <command> moves_fusion = get_moves(position(0, min(30, p.y), 0));
+                    for (int i = 0; i < moves_fusion.size(); i++) {
+                        for (int j = 0; j < 9; j++) {
+                            if (i + 1 == moves_fusion.size() && j == 1) {
+                                traces.push_back(SMove(0, 1, 0));
+                            } else if (i + 1 == moves_fusion.size() && j == 2) {
+                                traces.push_back(LMove(1, 0, 0, 0, 0, 1));
+                            } else if (j == 3) {
+                                traces.push_back(moves_fusion[i]);
+                            } else {
+                                traces.push_back(Wait());
+                            }
                         }
                     }
+                    
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(FusionP(0, -1, 0));
+                    traces.push_back(FusionS(0, 1, 0));
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
+                    traces.push_back(Wait());
                 }
-                
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(FusionP(0, -1, 0));
-                traces.push_back(FusionS(0, 1, 0));
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
-                traces.push_back(Wait());
                 
                 if (p.x - x <= 29) break;
                 
@@ -983,7 +1011,6 @@ vector <command> calc_large(const region& box, const position& p) {
     }
     
     {
-        
         vector <command> moves_y1 = get_moves(position(0, min(30, p.y), 0));
         vector <command> moves_y2 = get_moves(position(0, min(29, p.y - 1), 0));
         if (moves_y2.size() < moves_y1.size()) moves_y2.push_back(Wait());

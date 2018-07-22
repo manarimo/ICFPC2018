@@ -42,6 +42,8 @@ struct DisjointSet {
         if (ri == rj) {
             return false;
         }
+
+        //cout << "unite " << ri << ' ' << rj << ' ' << size[ri] << ' ' << size[rj] << endl;
         if (size[ri] > size[rj]) {
             root[rj] = root[ri];
             size[ri] += size[rj];
@@ -58,9 +60,16 @@ struct DisjointSet {
             // Unable to remove this node safely because it's root of a subtree.
             return false;
         }
+        // Remap children
+        for(int &r : root) {
+            if (r == i) {
+                r = ri;
+            }
+        }
         size[ri]--;
         root[i] = i;
         size[i] = 1;
+        //cout << "remove " << i << " size of root (" << ri << ") becomes " << size[ri] << endl;
         return true;
     }
 
@@ -258,10 +267,11 @@ struct State {
     Model* sourceModel;
     Model* targetModel;
     bool needReground;
+    bool skipSanityCheck;
 
-    State(Model* sourceModel, Model* targetModel)
+    State(Model* sourceModel, Model* targetModel, bool skipSanityCheck)
         : energy(0), harmonics(LOW), r(sourceModel->size), ds(r * r * r + 1), ground(r * r * r), filled(0),
-          sourceModel(sourceModel), targetModel(targetModel), needReground(false) {
+          sourceModel(sourceModel), targetModel(targetModel), needReground(false), skipSanityCheck(skipSanityCheck) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -376,8 +386,10 @@ struct State {
         } else {
             field[p.x][p.y][p.z] = false;
             --filled;
-            if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
-                needReground = true;
+            if (!skipSanityCheck) {
+                if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
+                    needReground = true;
+                }
             }
         }
     }
@@ -434,11 +446,11 @@ struct State {
                         if (y == 0) {
                             connectToGround(p);
                         }
-                    }
-                    for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
-                        const Coord q = p + c;
-                        if (isValidPoint(q) && field[q.x][q.y][q.z]) {
-                            connect(p, q);
+                        for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+                            const Coord q = p + c;
+                            if (isValidPoint(q) && field[q.x][q.y][q.z]) {
+                                connect(p, q);
+                            }
                         }
                     }
                 }
@@ -899,7 +911,7 @@ struct CommandGroup {
     }
 };
 
-void runStep(State &state, deque<Command*> &commands) {
+void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
     vector <Region> volatileRegions;
     map<int, Command*> commandMap;
     unordered_map<Region, CommandGroup*, RegionHasher> gfillGroups;
@@ -917,7 +929,9 @@ void runStep(State &state, deque<Command*> &commands) {
         const NanoBot &bot = botEntry.second;
         const GFillCommand *gfillCommand = dynamic_cast<GFillCommand*>(command);
 
-        command->checkPrecondition(state, bot.id);
+        if (!skipSanityCheck) {
+            command->checkPrecondition(state, bot.id);
+        }
 
         const vector<Region> newRegions = command->volatileRegions(state, bot.id);
         // Volatile region of GFill command is checked later
@@ -1001,6 +1015,10 @@ void runStep(State &state, deque<Command*> &commands) {
     }
     commands.erase(commands.begin(), it);
 
+    if (skipSanityCheck) {
+        return;
+    }
+
     // Recalculate ground state because it's dirty now due to Void commands
     if (state.needReground) {
         //cout << "need" << endl;
@@ -1027,13 +1045,15 @@ void runStep(State &state, deque<Command*> &commands) {
     //cout << state.filled << endl;
 }
 
-void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands) {
-    State *state = new State(sourceModel, targetModel);
+void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands, bool skipSanityCheck) {
+    State *state = new State(sourceModel, targetModel, skipSanityCheck);
     while (state->botCount() > 0) {
-        runStep(*state, commands);
+        runStep(*state, commands, skipSanityCheck);
     }
-    assert(commands.empty());
-    state->checkFinalState();
+    if (!skipSanityCheck) {
+        assert(commands.empty());
+        state->checkFinalState();
+    }
     
     cout << state->energy << endl;
 }
@@ -1137,11 +1157,12 @@ enum RunMode {
 
 struct Options {
     RunMode runMode;
+    bool skipSanityCheck;
 
     int argc;
     char **args;
 
-    Options() : runMode(ASSEMBLY), argc(0), args(nullptr) {}
+    Options() : runMode(ASSEMBLY), argc(0), args(nullptr), skipSanityCheck(false) {}
 };
 
 Options getOptions(int argc, char **argv) {
@@ -1152,6 +1173,8 @@ Options getOptions(int argc, char **argv) {
             options.runMode = DISASSEMBLY;
         } else if (strcmp(argv[i], "--reassembly") == 0) {
             options.runMode = REASSEMBLY;
+        } else if (strcmp(argv[i], "--aperture-science-dangerously-skip-sanity-check") == 0) {
+            options.skipSanityCheck = true;
         } else {
             options.argc = argc - i;
             options.args = argv + i;
@@ -1190,6 +1213,9 @@ int main(int argc, char **argv) {
     assert(sourceModel);
     assert(targetModel);
 
+    if (options.skipSanityCheck) {
+        cerr << "Skip sanity check mode" << endl;
+    }
     cerr << "Compiling..." << endl;
     deque <Command*> commands = compile(*args++);
     /*
@@ -1198,6 +1224,6 @@ int main(int argc, char **argv) {
     }
      */
     cerr << "Running..." << endl;
-    run(sourceModel, targetModel, commands);
+    run(sourceModel, targetModel, commands, options.skipSanityCheck);
     return 0;
 }
