@@ -33,7 +33,7 @@ def assets(path):
 def pending_traces():
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT p.name AS problem_name, trace_id, energy, author, comment, "
-                   "src.name AS src_model, tgt.name AS tgt_model "
+                   "src.name AS src_model, tgt.name AS tgt_model, p.type AS problem_type "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
                    "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
