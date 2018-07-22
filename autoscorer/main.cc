@@ -271,7 +271,7 @@ struct State {
 
     State(Model* sourceModel, Model* targetModel, bool skipSanityCheck)
         : energy(0), harmonics(LOW), r(sourceModel->size), ds(r * r * r + 1), ground(r * r * r), filled(0),
-          sourceModel(sourceModel), targetModel(targetModel), needReground(false), skipSanityCheck(false) {
+          sourceModel(sourceModel), targetModel(targetModel), needReground(false), skipSanityCheck(skipSanityCheck) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -386,8 +386,10 @@ struct State {
         } else {
             field[p.x][p.y][p.z] = false;
             --filled;
-            if (!skipSanityCheck && (!ds.remove(hashCoord(p)) || !stillConnected(p))) {
-                needReground = true;
+            if (!skipSanityCheck) {
+                if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
+                    needReground = true;
+                }
             }
         }
     }
@@ -909,7 +911,7 @@ struct CommandGroup {
     }
 };
 
-void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck = false) {
+void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
     vector <Region> volatileRegions;
     map<int, Command*> commandMap;
     unordered_map<Region, CommandGroup*, RegionHasher> gfillGroups;
@@ -1043,7 +1045,7 @@ void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck = fal
     //cout << state.filled << endl;
 }
 
-void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands, bool skipSanityCheck = false) {
+void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands, bool skipSanityCheck) {
     State *state = new State(sourceModel, targetModel, skipSanityCheck);
     while (state->botCount() > 0) {
         runStep(*state, commands, skipSanityCheck);
@@ -1211,6 +1213,9 @@ int main(int argc, char **argv) {
     assert(sourceModel);
     assert(targetModel);
 
+    if (options.skipSanityCheck) {
+        cerr << "Skip sanity check mode" << endl;
+    }
     cerr << "Compiling..." << endl;
     deque <Command*> commands = compile(*args++);
     /*
