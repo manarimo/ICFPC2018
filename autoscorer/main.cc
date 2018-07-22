@@ -10,8 +10,24 @@
 #include <fstream>
 #include <algorithm>
 #include <cstring>
+#include <cstdarg>
+#include <cstdio>
 
 using namespace std;
+
+void assert_msg(bool expr, const char *fmt, ...) {
+    if (!expr) {
+        char buf[512];
+
+        va_list args;
+        va_start (args, fmt);
+        vsprintf(buf, fmt, args);
+        va_end(args);
+
+        cerr << "ASSERTION FAILURE: " << buf << endl;
+        abort();
+    }
+}
 
 template<class T> void loopRange(int end1, int end2, T f) {
     const int from = min(end1, end2);
@@ -464,7 +480,9 @@ struct State {
         for (int dx = 0; dx <= d.x; ++dx) {
             for (int dy = 0; dy <= d.y; ++dy) {
                 for (int dz = 0; dz <= d.z; ++dz) {
-                    assert(!field[coord.x + dx][coord.y + dy][coord.z + dz]);
+                    assert_msg(!field[coord.x + dx][coord.y + dy][coord.z + dz], "Trying to move thorough filled voxel (%d, %d, %d)",
+                        coord.x + dx, coord.y + dy, coord.z + dz
+                    );
                 }
             }
         }
@@ -472,14 +490,16 @@ struct State {
         for (int dx = 0; dx >= d.x; --dx) {
             for (int dy = 0; dy >= d.y; --dy) {
                 for (int dz = 0; dz >= d.z; --dz) {
-                    assert(!field[coord.x + dx][coord.y + dy][coord.z + dz]);
+                    assert_msg(!field[coord.x + dx][coord.y + dy][coord.z + dz], "Trying to move through filled voxel (%d, %d, %d)",
+                        coord.x + dx, coord.y + dy, coord.z + dz
+                    );
                 }
             }
         }
     }
 
     void checkPhysics() {
-        assert(ds.size[ds.get(ground)] == filled + 1);
+        assert_msg(ds.size[ds.get(ground)] == filled + 1, "There are floating voxels while harmonics = LOW");
     }
 
     void checkFinalState() {
@@ -487,7 +507,7 @@ struct State {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
                 for (int k = 0; k < r; k++) {
-                    assert(field[i][j][k] == targetModel->field[i][j][k]);
+                    assert_msg(field[i][j][k] == targetModel->field[i][j][k], "(%d, %d, %d) does not match to target model", i, j, k);
                 }
             }
         }
@@ -656,11 +676,11 @@ struct FissionCommand : public Command {
 
     virtual void checkPrecondition(const State &state, int botId) {
         const NanoBot &bot = state.bot(botId);
-        assert(bot.seeds.size() > 0);
+        assert_msg(bot.seeds.size() > 0, "bot %d tries to fission without seeds", botId);
         const Coord next = bot.position + d;
         assert(state.isValidPoint(next));
         assert(!state.isFilled(next));
-        assert(m + 1 <= bot.seeds.size());
+        assert_msg(m + 1 <= bot.seeds.size(), "bot %d tries to fission at %d but only has %d seeds", botId, bot.seeds.size());
     }
 
     virtual vector <Region> volatileRegions(const State &state, int botId) {
@@ -752,7 +772,7 @@ struct FusionPCommand : public Command {
         const NanoBot &bot = state.bot(botId);
         const Coord next = bot.position + d;
         assert(state.isValidPoint(next));
-        assert(state.botExistsAt(next));
+        assert_msg(state.botExistsAt(next), "bot %d tries to fusionP but nobody is at (%d, %d, %d)", botId, next.x, next.y, next.z);
     }
 
     virtual vector <Region> volatileRegions(const State &state, int botId) {
@@ -798,7 +818,7 @@ struct FusionSCommand : public Command {
         const NanoBot &bot = state.bot(botId);
         const Coord next = bot.position + d;
         assert(state.isValidPoint(next));
-        assert(state.botExistsAt(next));
+        assert_msg(state.botExistsAt(next), "bot %d tries to fusionS but nobody is at (%d, %d, %d)", botId, next.x, next.y, next.z);
     }
 
     virtual vector <Region> volatileRegions(const State &state, int botId) {
@@ -938,7 +958,7 @@ void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
         if (!gfillCommand) {
             for (auto region : newRegions) {
                 for (auto r : volatileRegions) {
-                    assert(!region.intersects(r) && !r.intersects(region));
+                    assert_msg(!region.intersects(r) && !r.intersects(region), "Volatile regions are interfering each other");
                 }
             }
             for (auto region : newRegions) {
@@ -962,7 +982,11 @@ void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
     for (auto entry : gfillGroups) {
         const Region targetRegion = entry.first;
         const CommandGroup *group = entry.second;
-        assert(group->components.size() >= (1 << targetRegion.dim()));
+        assert_msg(group->components.size() >= (1 << targetRegion.dim()), "Attempt to GFill region (%d, %d, %d) - (%d, %d, %d) but only %d bots participated",
+            targetRegion.lb.x, targetRegion.lb.y, targetRegion.lb.z,
+            targetRegion.rt.x, targetRegion.rt.y, targetRegion.rt.z,
+            group->components.size()
+        );
 
         // All bots must support different corners of region
         for (auto component : group->components) {
@@ -974,7 +998,9 @@ void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
                 const GFillCommand *gfillCommand2 = dynamic_cast<GFillCommand*>(other.second);
                 assert(gfillCommand2 != nullptr);
                 const Coord corner2 = state.bot(other.first).position + gfillCommand2->nd;
-                assert(corner1 != corner2);
+                assert_msg(corner1 != corner2, "bot %d and %d are supporting same corner of region: (%d, %d, %d)",
+                    component.first, other.first, corner1.x, corner1.y, corner1.z
+                );
             }
         }
 
@@ -1008,7 +1034,9 @@ void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck) {
         Command *command = commandEntry.second;
         const int targetId = commandEntry.second->fusionTarget(state, bot.id);
         if (targetId > 0) {
-            assert(commandMap[targetId]->fusionTarget(state, targetId) == bot.id);
+            const int reverseTarget = commandMap[targetId]->fusionTarget(state, targetId);
+            assert_msg(reverseTarget == bot.id, "bot %d is pointing %d as fusion target but the target is pointing %d",
+                bot.id, targetId, reverseTarget);
         }
 
         command->updateState(state, bot.id);
