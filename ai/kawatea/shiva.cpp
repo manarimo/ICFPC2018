@@ -644,6 +644,8 @@ vector <command> calc_large(const region& box, const position& p) {
         
         traces = get_moves(origin);
         
+        if (cx == 8) cz = 5;
+        
         for (int i = 0; i < cx - 2; i++) {
             for (int j = 0; j < i; j++) traces.push_back(Wait());
             traces.push_back(Fission(1, 0, 0, (cz - 1) * (cx - 2 - i) - 1));
@@ -723,13 +725,65 @@ vector <command> calc_large(const region& box, const position& p) {
                 }
                 if (!all_moves[i].empty()) remaining = true;
             }
-            if (!hermonics && updated && !grounded(box)) {
+            if (cx <= 7 && !hermonics && updated && !grounded(box)) {
                 hermonics = true;
                 traces.push_back(Flip());
             } else {
                 traces.push_back(Wait());
             }
             if (!remaining) break;
+        }
+        
+        if (cx == 8) {
+            {
+                vector <command> moves = get_moves(position(0, 0, 90));
+                for (int i = 0; i < moves.size(); i++) {
+                    for (int j = 0; j < bots; j++) {
+                        if (j < cx - 1) {
+                            traces.push_back(Wait());
+                        } else {
+                            traces.push_back(moves[i]);
+                        }
+                    }
+                    traces.push_back(Wait());
+                }
+            }
+            
+            for (int i = box.p2.y + 1; i > 0; i--) {
+                for (int j = 0; j < bots; j++) {
+                    if (j < cx - 1) {
+                        traces.push_back(Wait());
+                    } else {
+                        traces.push_back(Void(0, -1, 0));
+                    }
+                }
+                traces.push_back(Wait());
+                
+                if (i == 1) continue;
+                
+                for (int j = 0; j < bots; j++) {
+                    if (j < cx - 1) {
+                        traces.push_back(Wait());
+                    } else {
+                        traces.push_back(SMove(0, -1, 0));
+                    }
+                }
+                traces.push_back(Wait());
+            }
+            
+            {
+                vector <command> moves = get_moves(position(0, box.p2.y, -90));
+                for (int i = 0; i < moves.size(); i++) {
+                    for (int j = 0; j < bots; j++) {
+                        if (j < cx - 1) {
+                            traces.push_back(Wait());
+                        } else {
+                            traces.push_back(moves[i]);
+                        }
+                    }
+                    traces.push_back(Wait());
+                }
+            }
         }
         
         int num = traces.size();
@@ -921,7 +975,7 @@ vector <command> calc_large(const region& box, const position& p) {
                                     }
                                 }
                             }
-                            if (grounded(box) == hermonics) {
+                            if (cx <= 7 && grounded(box) == hermonics) {
                                 hermonics = !hermonics;
                                 traces.push_back(Flip());
                             } else {
