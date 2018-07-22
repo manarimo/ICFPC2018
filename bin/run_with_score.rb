@@ -40,8 +40,16 @@ Dir.chdir("#{work_dir}/autoscorer")
 energy = `./autoscorer #{scorer_option} #{input_models.join(' ')} "#{nbt_path}"`.to_i
 if $?.success?
   puts "energy=#{energy}"
-  puts `curl -X POST -F energy=#{energy} http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`
+  json = JSON.parse(`curl -X POST -F energy=#{energy} http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
+  if json['status'] == 'failure'
+    puts json
+    exit 1
+  end
 else
   puts "Autoscorer failed"
-  puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`
+  json = JSON.parse(`curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
+  if json['status'] == 'failure'
+    puts json
+    exit 1
+  end
 end
