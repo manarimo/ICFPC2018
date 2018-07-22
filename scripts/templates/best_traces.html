@@ -22,6 +22,7 @@ Nanachi
         <th>Problem Name</th>
         <th>Trace ID</th>
         <th>Energy</th>
+        <th>Ranking best (team)</th>
         <th>Author</th>
         <th>Comment</th>
     </tr>
@@ -32,6 +33,7 @@ Nanachi
         <td><a href="{{ url_for('problem_summary', name=trace['problem_name']) }}">{{ trace['problem_name'] }}</a> </td>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
         <td>{{ "%.3E"|format((trace['energy_autoscorer'] or 0) if autoscorer else (trace['energy'] or 0)) }}</td>
+        <td>{{ trace['ranking_best'] or ''}}</td>
         <td>{{ trace['author'] }}</td>
         <td>{{ trace['comment'] }}</td>
     </tr>

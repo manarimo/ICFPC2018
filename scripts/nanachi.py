@@ -51,9 +51,11 @@ def best_traces():
     cursor = connection.cursor(dictionary=True)
     lightning = request.args.get('lightning') == 'true'
     autoscorer = request.args.get('autoscorer') == 'true'
-    cursor.execute("SELECT name AS problem_name, trace_id, energy, energy_autoscorer, author, comment "
+    cursor.execute("SELECT p.name AS problem_name, trace_id, tbltrace_metadata.energy, energy_autoscorer, author, comment,"
+                   "  CONCAT(r.energy, ' (', r.name, ')') AS ranking_best "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
+                   "LEFT OUTER JOIN tblofficial_ranking r ON p.id = r.problem_id "
                    "WHERE p.is_lightning = %s",
                    (lightning,))
     key = "energy_autoscorer" if autoscorer else "energy"
@@ -254,6 +256,35 @@ def problem_summary(name: str):
     connection.commit()
 
     return render_template('problem_summary.html', name=name, traces=tracerows, problem=problem)
+
+@app.route("/rankings/update", methods=['POST'])
+def update_ranking():
+    payload = request.json
+    problem_names = [e['problem_name'] for e in payload]
+    cursor = connection.cursor(dictionary=True)
+    placeholder = ','.join(['%s'] * len(problem_names))
+    cursor.execute("SELECT id, name FROM tblproblem WHERE name IN (%s)" % placeholder, problem_names)
+
+    problem_map = dict()
+    for row in cursor.fetchall():
+        problem_map[row['name']] = row['id']
+    cursor.close()
+
+    values = []
+    for entry in payload:
+        values.append((problem_map[entry['problem_name']], entry['name'], int(entry['score'])))
+
+    cursor = connection.cursor(dictionary=True)
+    cursor.executemany(
+        "INSERT INTO tblofficial_ranking (problem_id, name, energy) VALUES (%s, %s, %s) "
+        "ON DUPLICATE KEY UPDATE "
+        "name=IF(energy < VALUES(energy), VALUES(name), name), "
+        "energy=GREATEST(energy, VALUES(energy))",
+    values)
+    cursor.close()
+    connection.commit()
+
+    return ('', 200)
 
 @app.route("/")
 def hello():
