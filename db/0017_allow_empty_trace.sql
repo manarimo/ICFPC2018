@@ -1,1 +1,1 @@
-ALTER TABLE tbltrace ADD COLUMN s3url varchar(600) DEFAULT NULL;
+ALTER TABLE tbltrace_metadata ADD COLUMN s3url longtext DEFAULT NULL;
