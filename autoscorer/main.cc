@@ -228,7 +228,7 @@ struct State {
             }
         }
         set<int> seeds;
-        for (int i = 2; i <= 20; ++i) {
+        for (int i = 2; i <= 40; ++i) {
             seeds.insert(i);
         }
         bots[1] = NanoBot{1, seeds};
