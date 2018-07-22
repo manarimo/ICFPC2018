@@ -3,12 +3,21 @@
 #include <deque>
 #include <set>
 #include <map>
+#include <unordered_map>
 #include <cassert>
 #include <string>
 #include <fstream>
 #include <algorithm>
 
 using namespace std;
+
+template<class T> void loopRange(int end1, int end2, T f) {
+    const int from = min(end1, end2);
+    const int to = max(end1, end2);
+    for (int i = from; i <= to; ++i) {
+        f(i);
+    }
+}
 
 struct DisjointSet {
     vector<int> root;
@@ -63,6 +72,10 @@ struct Coord {
         return false;
     }
 
+    bool isFarDistance() const {
+        return 0 < clen() && clen() <= 30;
+    }
+
     int mlen() const {
         return abs(x) + abs(y) + abs(z);
     }
@@ -86,6 +99,10 @@ Coord operator-(const Coord &c1, const Coord &c2) {
 
 bool operator ==(const Coord &c1, const Coord &c2) {
     return c1.x == c2.x && c1.y == c2.y && c1.z == c2.z;
+}
+
+bool operator !=(const Coord &c1, const Coord &c2) {
+    return !(c1 == c2);
 }
 
 bool inRange(int a, int x, int b) {
@@ -122,7 +139,40 @@ struct Region {
         }
         return false;
     }
+
+    Region canonical() const {
+        return Region {
+            Coord { min(lb.x, rt.x), min(lb.y, rt.y), min(lb.z, rt.z) },
+            Coord { max(lb.x, rt.x), max(lb.y, rt.y), max(lb.z, rt.z) }
+        };
+    }
+
+    int dim() const {
+        int res = 0;
+        if (lb.x != rt.x) ++res;
+        if (lb.y != rt.y) ++res;
+        if (lb.z != rt.z) ++res;
+        return res;
+    }
 };
+
+struct RegionHasher {
+    size_t operator()(const Region &r) const {
+        size_t res = r.lb.x;
+        res = res * 250 + r.lb.y;
+        res = res * 250 + r.lb.z;
+        res = res * 250 + r.rt.x;
+        res = res * 250 + r.rt.y;
+        res = res * 250 + r.rt.z;
+        return res;
+    }
+};
+
+bool operator ==(const Region &r1, const Region &r2) {
+    const Region rc1 = r1.canonical();
+    const Region rc2 = r2.canonical();
+    return rc1.lb == rc2.lb && rc1.rt == rc2.rt;
+}
 
 enum Harmonics {
     HIGH,
@@ -625,9 +675,90 @@ struct FusionSCommand : public Command {
     }
 };
 
+struct GFillCommand : public Command {
+    Coord nd, fd;
+
+    GFillCommand(const Coord &nd, const Coord &fd) : nd(nd), fd(fd) {
+        assert(nd.isNeardistance());
+        assert(fd.isFarDistance());
+    }
+
+    virtual void checkPrecondition(const State &state, int botId) {
+        const NanoBot &bot = state.bot(botId);
+        const Coord c1 = bot.position + nd;
+        const Coord c2 = c1 + fd;
+        assert(state.isValidPoint(c1));
+        assert(state.isValidPoint(c2));
+        const Region fillRegion{ c1, c2 };
+        assert(!fillRegion.contains(bot.position));
+    }
+
+    virtual vector <Region> volatileRegions(const State &state, int botId) {
+        const NanoBot &bot = state.bot(botId);
+        const Coord c1 = bot.position + nd;
+        const Coord c2 = c1 + fd;
+        return vector < Region > {
+            Region{bot.position, bot.position},
+            Region{c1, c2}
+        };
+    }
+
+    virtual void updateState(State &state, int botId) {
+        const NanoBot &bot = state.bot(botId);
+        const Coord c1 = bot.position + nd;
+        const Coord c2 = c1 + fd;
+
+        loopRange(c1.x, c2.x, [&](int x) {
+            loopRange(c1.y, c2.y, [&](int y) {
+                loopRange(c1.z, c2.z, [&](int z) {
+                    const Coord c{x, y, z};
+                    if (state.isFilled(c)) {
+                        state.energy += 6;
+                    } else {
+                        state.fill(c);
+                        state.energy += 12;
+                    }
+                });
+            });
+        });
+    }
+
+    virtual ostream& print(ostream &os) const {
+        return os << "<GFillCommand nd=" << nd << ", fd=" << fd << ">";
+    }
+
+    Region targetRegion(State &state, int botId) const {
+        const NanoBot &bot = state.bot(botId);
+        const Coord c1 = bot.position + nd;
+        const Coord c2 = c1 + fd;
+        return Region{c1, c2}.canonical();
+    }
+};
+
+struct CommandGroup {
+    vector<pair<int, Command*>> components;
+
+    CommandGroup() : components()  {}
+
+    vector<Region> volatileRegions(State &state) const {
+        vector<Region> regions;
+        for (auto component : components) {
+            for (auto region : component.second->volatileRegions(state, component.first)) {
+                regions.push_back(region);
+            }
+        }
+        return regions;
+    }
+
+    void updateState(State &state) const {
+        components[0].second->updateState(state, components[0].first);
+    }
+};
+
 void runStep(State &state, deque<Command*> &commands) {
     vector <Region> volatileRegions;
     map<int, Command*> commandMap;
+    unordered_map<Region, CommandGroup*, RegionHasher> gfillGroups;
 
     if (state.harmonics == LOW) {
         state.energy += 3 * state.r * state.r * state.r;
@@ -640,20 +771,74 @@ void runStep(State &state, deque<Command*> &commands) {
     for (auto botEntry : state.bots) {
         Command *command = *it++;
         const NanoBot &bot = botEntry.second;
+        const GFillCommand *gfillCommand = dynamic_cast<GFillCommand*>(command);
 
         command->checkPrecondition(state, bot.id);
+
         const vector<Region> newRegions = command->volatileRegions(state, bot.id);
+        // Volatile region of GFill command is checked later
+        if (!gfillCommand) {
+            for (auto region : newRegions) {
+                for (auto r : volatileRegions) {
+                    assert(!region.intersects(r) && !r.intersects(region));
+                }
+            }
+            for (auto region : newRegions) {
+                volatileRegions.push_back(region);
+            }
+        }
+
+        if (gfillCommand) {
+            const Region targetRegion = gfillCommand->targetRegion(state, bot.id);
+            CommandGroup *group = gfillGroups[targetRegion];
+            if (group == nullptr) {
+                group = gfillGroups[targetRegion] = new CommandGroup();
+            }
+            group->components.emplace_back(bot.id, command);
+        } else {
+            commandMap[bot.id] = command;
+        }
+    }
+
+    // Check GFill sanity
+    for (auto entry : gfillGroups) {
+        const Region targetRegion = entry.first;
+        const CommandGroup *group = entry.second;
+        assert(group->components.size() >= (1 << targetRegion.dim()));
+
+        // All bots must support different corners of region
+        for (auto component : group->components) {
+            const GFillCommand *gfillCommand1 = dynamic_cast<GFillCommand*>(component.second);
+            assert(gfillCommand1 != nullptr);
+            const Coord corner1 = state.bot(component.first).position + gfillCommand1->nd;
+            for (auto other : group->components) {
+                if (component == other) break; // Shortcut
+                const GFillCommand *gfillCommand2 = dynamic_cast<GFillCommand*>(other.second);
+                assert(gfillCommand2 != nullptr);
+                const Coord corner2 = state.bot(other.first).position + gfillCommand2->nd;
+                assert(corner1 != corner2);
+            }
+        }
+
+        // Check volatile regions with GFill
+        const vector<Region> newRegions = group->volatileRegions(state);
         for (auto region : newRegions) {
             for (auto r : volatileRegions) {
                 assert(!region.intersects(r) && !r.intersects(region));
             }
         }
-        for (auto region : newRegions) {
+        for (auto region: newRegions) {
             volatileRegions.push_back(region);
         }
-        commandMap[bot.id] = command;
     }
 
+    // Run GFill
+    for (auto entry : gfillGroups) {
+        const CommandGroup *group = entry.second;
+        group->updateState(state);
+    }
+
+    // Run normal commands
     for (auto commandEntry : commandMap) {
         if (dynamic_cast<FusionSCommand*>(commandEntry.second)) {
             // state.bot() would fail if coupled FusionPCommand is processed earlier. Skip here to avoid interference.
@@ -731,6 +916,10 @@ Coord decodeLongDistance(int a, int i) {
    assert(false);
 }
 
+Coord decodeFarDistance(int x, int y, int z) {
+    return Coord{x - 30, y - 30, z - 30};
+}
+
 deque<Command*> compile(const string filename) {
     ifstream in(filename);
     deque<Command*> commands;
@@ -768,6 +957,12 @@ deque<Command*> compile(const string filename) {
             commands.push_back(new FissionCommand(decodeNearDistance(b1 >> 3), b2));
         } else if ((b1 & 0x07) == 0b011) {
             commands.push_back(new FillCommand(decodeNearDistance(b1 >> 3)));
+        } else if ((b1 & 0x07) == 0b001) {
+            unsigned char b2, b3, b4;
+            in.read(reinterpret_cast<char*>(&b2), sizeof(b2));
+            in.read(reinterpret_cast<char*>(&b3), sizeof(b3));
+            in.read(reinterpret_cast<char*>(&b4), sizeof(b4));
+            commands.push_back(new GFillCommand(decodeNearDistance(b1 >> 3), decodeFarDistance(b2, b3, b4)));
         }
         //cout << *commands.back() << endl;
     }
