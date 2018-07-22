@@ -359,7 +359,7 @@ vector<int> calcBlockSum(int y, int xs) {
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
         for (int z = 0; z < R; ++z) {
-//            if (!field[x][y][z]) continue;
+            if (!field[x][y][z]) continue;
             int r = z;
             while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
             ++block[x];
