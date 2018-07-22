@@ -20,7 +20,7 @@ def register(name: str, blob: bytes, energy: int, author: str, comment: str, s3_
     else:
         cursor.execute("INSERT INTO tbltrace (problem_id, score, sha1) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, negenergy, sha1sum, negenergy))
     trace_id = cursor.lastrowid
-    cursor.execute("REPLACE INTO tbltrace_metadata (trace_id, energy, author, comment, s3url) VALUES (%s, %s, %s, %s, %s)", (trace_id, energy, author, comment, s3_url))
+    cursor.execute("REPLACE INTO tbltrace_metadata (trace_id, energy, energy_autoscorer, author, comment, s3url) VALUES (%s, %s, %s, %s, %s, %s)", (trace_id, energy, energy, author, comment, s3_url))
     cursor.close()
     connection.commit()
     connection.close()
