@@ -633,7 +633,7 @@ vector <command> calc_small(const region& box, const position& p) {
 }
 
 vector <command> calc_large(const region& box, const position& p) {
-    int cx = (p.x + 29) / 30, cz = (p.z + 29) / 30;
+    int cx = p.x / 30 + 1, cz = p.z / 30 + 1;
     vector <command> traces;
     
     if (cx <= 1 || cz <= 1) {
