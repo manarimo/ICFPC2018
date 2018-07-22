@@ -51,9 +51,11 @@ def best_traces():
     cursor = connection.cursor(dictionary=True)
     lightning = request.args.get('lightning') == 'true'
     autoscorer = request.args.get('autoscorer') == 'true'
-    cursor.execute("SELECT name AS problem_name, trace_id, energy, energy_autoscorer, author, comment "
+    cursor.execute("SELECT p.name AS problem_name, trace_id, tbltrace_metadata.energy, energy_autoscorer, author, comment,"
+                   "  CONCAT(r.energy, ' (', r.name, ')') AS ranking_best "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
+                   "LEFT OUTER JOIN tblofficial_ranking r ON p.id = r.problem_id "
                    "WHERE p.is_lightning = %s",
                    (lightning,))
     key = "energy_autoscorer" if autoscorer else "energy"
