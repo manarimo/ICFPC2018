@@ -32,24 +32,35 @@ Dir.chdir("#{work_dir}/hissen/src")
 `javac Main.java`
 `java Main "#{asm_path}" "#{nbt_path}"`
 
-json = JSON.parse(`curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F nbt-blob=@"#{nbt_path}" http://nanachi.kadingel.osak.jp/traces/register`)
-pp json
+if File.exists?(File.expand_path('~/venv'))
+  url = `~/venv/bin/python #{work_dir}/scripts/upload_to_s3.py #{nbt_path}`
+  sha1 = `sha1sum #{nbt_path}`.split[0]
+  json = JSON.parse(`curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F s3url="#{url}" -F sha1sum=#{sha1} http://nanachi.kadingel.osak.jp/traces/register`)
+  done_upload = true
+else
+  puts "Skip uploading file because this is not server environment"
+  done_upload = false
+end
 
 Dir.chdir("#{work_dir}/autoscorer")
 `make`
 energy = `./autoscorer #{scorer_option} #{input_models.join(' ')} "#{nbt_path}"`.to_i
 if $?.success?
   puts "energy=#{energy}"
-  json = JSON.parse(`curl -X POST -F energy=#{energy} http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
-  if json['status'] == 'failure'
-    puts json
-    exit 1
+  if done_upload
+    json = JSON.parse(`curl -X POST -F energy=#{energy} http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
+    if json['status'] == 'failure'
+      puts json
+      exit 1
+    end
   end
 else
   puts "Autoscorer failed"
-  json = JSON.parse(`curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
-  if json['status'] == 'failure'
-    puts json
-    exit 1
+  if done_upload
+    json = JSON.parse(`curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`)
+    if json['status'] == 'failure'
+      puts json
+      exit 1
+    end
   end
 end

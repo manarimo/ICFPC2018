@@ -104,10 +104,16 @@ def trace_register():
             energy = int(request.form["energy"])
         else:
             energy = None
-        nbt_blob = request.files["nbt-blob"].read()
-        trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
+        if "nbt-blob" in request.files:
+            nbt_blob = request.files["nbt-blob"].read()
+        else:
+            nbt_blob = None
+        s3_url = request.form.get('s3url', None)
+        sha1sum = request.form.get('sha1sum', None)
+        trace_id = register_trace.register(name, nbt_blob, energy, author, comment, s3_url, sha1sum)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
+        raise e
         return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
 
 
