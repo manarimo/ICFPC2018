@@ -34,7 +34,7 @@ def pending_traces():
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
-                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id "
+                   "JOIN tblproblem ON tblproblem.id = tbltrace.problem_id "
                    "WHERE tbltrace_metadata.energy_autoscorer IS NULL AND tbltrace_metadata.failed IS NULL")
     traces = cursor.fetchall()
     cursor.close()
@@ -226,6 +226,34 @@ def problem_list():
 
     return render_template("problem_list.html", problems=rows)
 
+@app.route("/problems/<name>")
+def problem_summary(name: str):
+    tracecursor = connection.cursor(dictionary=True)
+    tracecursor.execute(
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
+        "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "JOIN tblmodel ON tbltrace.problem_id = tblproblem.id WHERE tblproblem.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
+        (name,))
+    tracerows = tracecursor.fetchall()
+    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
+    tracecursor.close()
+    connection.commit()
+
+    modelcursor = connection.cursor(dictionary=True)
+    modelcursor.execute(
+        "SELECT m.name AS name, meta.r AS r, meta.fill_count AS fill_count, "
+          "meta.num_components AS num_components, "
+          "meta.largest_component_size AS largest_component_size, "
+          "meta.max_depth AS max_depth, meta.num_void_spaces AS num_void_spaces "
+          "FROM tblmodel m "
+          "JOIN tblmodel_metadata meta ON m.id = meta.model_id "
+          "WHERE m.name=%s",
+          (name,))
+    model = modelcursor.fetchone()
+    modelcursor.close()
+    connection.commit()
+
+    return render_template('model_summary.html', name=name, traces=tracerows, model=model)
 
 @app.route("/")
 def hello():
