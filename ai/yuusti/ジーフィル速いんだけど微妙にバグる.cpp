@@ -360,7 +360,10 @@ vector<int> calcBlockSum(int y, int xs) {
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
         for (int z = 0; z < R; ++z) {
-            block[x] += (field[x][y][z] && z == 0) || z > 0 && !field[x][y][z - 1] && field[x][y][z];
+            int r = z;
+            while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
+            ++block[x];
+            z = r - 1;
         }
         sum[x + 1] = sum[x] + block[x];
     }
