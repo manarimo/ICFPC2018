@@ -670,8 +670,19 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 }
                 case FUSIONP:break;
                 case FUSIONS:break;
-                case GFILL:break;
-                case GVOID:break;
+                case GFILL:
+                case GVOID: {
+                    auto &newState = steps[turn + 1].state;
+                    if (not newState.hermony) {
+                        break;
+                    }
+                    new_steps[turn].multiCommand.commands[prevCommandId] = command;
+                    new_steps[turn + 1].multiCommand.commands[command_id] = wait();
+                    for (auto &&dest : region(bot.p + command.p1, bot.p + command.p1 + command.p2).internals()) {
+                        newState.filled[dest.x][dest.y][dest.z] = command.op == GFILL;
+                    }
+                    break;
+                }
                 default:
                     // do nothing
                     break;
