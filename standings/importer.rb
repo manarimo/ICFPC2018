@@ -15,4 +15,4 @@ doc.xpath('//h3[starts-with(@id, "problem-")]').each do |problem_node|
   values << { problem_name: problem_id.tr('a-z', 'A-Z'), name: best_name, score: best_score }
 end
 
-puts `curl -X POST -H 'Content-type: application/json' --data '#{values.to_json}' http://localhost:8081/rankings/update`
+puts `curl -X POST -H 'Content-type: application/json' --data '#{values.to_json}' http://nanachi.kadingel.osak.jp/rankings/update`

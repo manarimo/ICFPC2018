@@ -265,7 +265,7 @@ def update_ranking():
 
     problem_map = dict()
     for row in cursor.fetchall():
-        problem_map[row['name']] = id
+        problem_map[row['name']] = row['id']
     cursor.close()
 
     values = []
