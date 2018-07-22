@@ -3,6 +3,7 @@
 #include <deque>
 #include <set>
 #include <map>
+#include <unordered_set>
 #include <unordered_map>
 #include <cassert>
 #include <string>
@@ -50,6 +51,26 @@ struct DisjointSet {
         }
         return true;
     }
+
+    bool remove(int i) {
+        const int ri = get(i);
+        if (i == ri) {
+            // Unable to remove this node safely because it's root of a subtree.
+            return false;
+        }
+        size[ri]--;
+        root[i] = i;
+        size[i] = 1;
+        return true;
+    }
+
+    void reset() {
+        const int N = root.size();
+        for (int i = 0; i < N; ++i) {
+            root[i] = i;
+            size[i] = 1;
+        }
+    }
 };
 
 struct Coord {
@@ -87,6 +108,12 @@ struct Coord {
 
     friend ostream& operator <<(ostream &os, const Coord &c) {
         return os << "(" << c.x << ", " << c.y << ", " << c.z << ")";
+    }
+};
+
+struct CoordHasher {
+    size_t operator()(const Coord &c) const {
+        return c.x * 250 * 250 + c.y * 250 + c.z;
     }
 };
 
@@ -348,12 +375,55 @@ struct State {
             }
         } else {
             field[p.x][p.y][p.z] = false;
-            needReground = true;
+            --filled;
+            if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
+                needReground = true;
+            }
         }
     }
 
+    bool stillConnected(const Coord &p) {
+        static deque<Coord> q;
+        static unordered_set<Coord, CoordHasher> targets, visited;
+        q.clear();
+        targets.clear();
+        visited.clear();
+
+        for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+            const Coord neighbor = p + c;
+            if (isValidPoint(neighbor) && isFilled(neighbor)) {
+                targets.insert(neighbor);
+            }
+        }
+        if (targets.size() <= 1) return true;
+
+        q.push_back(*targets.begin());
+        visited.insert(*targets.begin());
+        targets.erase(targets.begin());
+        while (!q.empty()) {
+            const Coord cur = q.front();
+            q.pop_front();
+
+            if (targets.size() == 0) {
+                return true;
+            }
+            for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+                const Coord next = cur + c;
+                if (isValidPoint(next) && isFilled(next) && visited.find(next) == visited.end()) {
+                    visited.insert(next);
+                    auto it = targets.find(next);
+                    if (it != targets.end()) {
+                        targets.erase(it);
+                    }
+                    q.push_back(next);
+                }
+            }
+        }
+        return false;
+    }
+
     void reground() {
-        ds = DisjointSet(r * r * r + 1);
+        ds.reset();
         filled = 0;
         for (int x = 0; x < r; ++x) {
             for (int y = 0; y < r; ++y) {
@@ -933,6 +1003,7 @@ void runStep(State &state, deque<Command*> &commands) {
 
     // Recalculate ground state because it's dirty now due to Void commands
     if (state.needReground) {
+        //cout << "need" << endl;
         state.reground();
     }
 
@@ -953,6 +1024,7 @@ void runStep(State &state, deque<Command*> &commands) {
         assert(!state.isFilled(botEntry.second.position));
     }
     //cout << state.energy << endl;
+    //cout << state.filled << endl;
 }
 
 void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands) {
