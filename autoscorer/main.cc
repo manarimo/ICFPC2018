@@ -42,6 +42,8 @@ struct DisjointSet {
         if (ri == rj) {
             return false;
         }
+
+        //cout << "unite " << ri << ' ' << rj << ' ' << size[ri] << ' ' << size[rj] << endl;
         if (size[ri] > size[rj]) {
             root[rj] = root[ri];
             size[ri] += size[rj];
@@ -58,9 +60,16 @@ struct DisjointSet {
             // Unable to remove this node safely because it's root of a subtree.
             return false;
         }
+        // Remap children
+        for(int &r : root) {
+            if (r == i) {
+                r = ri;
+            }
+        }
         size[ri]--;
         root[i] = i;
         size[i] = 1;
+        //cout << "remove " << i << " size of root (" << ri << ") becomes " << size[ri] << endl;
         return true;
     }
 
@@ -435,11 +444,11 @@ struct State {
                         if (y == 0) {
                             connectToGround(p);
                         }
-                    }
-                    for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
-                        const Coord q = p + c;
-                        if (isValidPoint(q) && field[q.x][q.y][q.z]) {
-                            connect(p, q);
+                        for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+                            const Coord q = p + c;
+                            if (isValidPoint(q) && field[q.x][q.y][q.z]) {
+                                connect(p, q);
+                            }
                         }
                     }
                 }
