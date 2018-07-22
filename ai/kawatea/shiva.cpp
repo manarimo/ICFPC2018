@@ -74,6 +74,64 @@ struct command {
     command(operation op, int energy, const position& p1, int m) : op(op), energy(energy), p1(p1), m(m) {}
 };
 
+class UnionFind {
+    public:
+    UnionFind(int R) : R(R) {
+        int n = R * R * R + 1;
+        parent = (int *)malloc(sizeof(int) * n);
+        for (int i = 0; i < n; i++) parent[i] = -1;
+    }
+    
+    ~UnionFind() {
+        free(parent);
+    }
+    
+    int find(int x) {
+        if (parent[x] < 0) return x;
+        
+        return parent[x] = find(parent[x]);
+    }
+    
+    int find(int x, int y, int z) {
+        return find(x * R * R + y * R + z);
+    }
+    
+    int ground() {
+        return find(R, 0, 0);
+    }
+    
+    void unite(int x, int y) {
+        x = find(x);
+        y = find(y);
+        
+        if (x == y) return;
+        
+        if (parent[x] < parent[y]) {
+            parent[x] += parent[y];
+            parent[y] = x;
+        } else {
+            parent[y] += parent[x];
+            parent[x] = y;
+        }
+    }
+    
+    void unite(int x1, int y1, int z1, int x2, int y2, int z2) {
+        return unite(find(x1, y1, z1), find(x2, y2, z2));
+    }
+    
+    int size(int x) {
+        return -parent[find(x)];
+    }
+    
+    int size(int x1, int y1, int z1) {
+        return size(find(x1, y1, z1));
+    }
+    
+    private:
+    int R;
+    int *parent;
+};
+
 const int MAX_R = 250;
 const int MAX_B = 40;
 unsigned char buffer[MAX_R * MAX_R * MAX_R / 8];
@@ -170,10 +228,6 @@ bool near(const position& p1, const position& p2) {
     return md <= 2 && cd == 1;
 }
 
-void maintain(long long& energy, int bots) {
-    energy += (hermonics ? 30 : 3) * R * R * R + 20 * bots;
-}
-
 command Halt() {
     return command(HALT, 0);
 }
@@ -258,9 +312,31 @@ command GVoid(int dx1, int dy1, int dz1, int dx2, int dy2, int dz2) {
     return GVoid(position(dx1, dy1, dz1), position(dx2, dy2, dz2));
 }
 
-void add_trace(long long& energy, vector <command>& traces, const command& command) {
-    energy += command.energy;
-    traces.push_back(command);
+bool grounded(const region& box) {
+    UnionFind uf(R);
+    int voxel = 0;
+    static int dx[3] = {1, 0, 0};
+    static int dy[3] = {0, 1, 0};
+    static int dz[3] = {0, 0, 1};
+    
+    for (int x = box.p1.x; x <= box.p2.x; x++) {
+        for (int y = box.p1.y; y <= box.p2.y; y++) {
+            for (int z = box.p1.z; z <= box.p2.z; z++) {
+                if (!matrix[x][y][z]) continue;
+                
+                voxel++;
+                
+                if (y == 0) uf.unite(uf.find(x, y, z), uf.ground());
+                
+                for (int i = 0; i < 3; i++) {
+                    int nx = x + dx[i], ny = y + dy[i], nz = z + dz[i];
+                    if (matrix[nx][ny][nz]) uf.unite(x, y, z, nx, ny, nz);
+                }
+            }
+        }
+    }
+    
+    return uf.size(uf.ground()) == voxel + 1;
 }
 
 vector <command> get_moves(position p) {
@@ -601,12 +677,10 @@ vector <command> calc_large(const region& box, const position& p) {
             }
         }
         
-        for (int i = 0; i < traces.size(); i++) {
-            if (traces[traces.size() - i - 1].op == WAIT) {
-                traces[traces.size() - i - 1] = Flip();
-                hermonics = true;
-                break;
-            }
+        if (cx == 2 && cz == 2) {
+            traces.push_back(Fission(-1, 0, 0, 0));
+        } else {
+            traces[traces.size() - bots] = Fission(-1, 0, 0, 0);
         }
         
         vector <vector<command>> all_moves;
@@ -625,18 +699,27 @@ vector <command> calc_large(const region& box, const position& p) {
         }
         while (true) {
             bool remaining = false;
+            bool updated = false;
             for (int i = 0; i < bots; i++) {
                 if (all_moves[i].empty()) {
                     traces.push_back(Wait());
                 } else {
+                    if (all_moves[i].back().op == VOID) updated = true;
                     traces.push_back(all_moves[i].back());
                     all_moves[i].pop_back();
                 }
                 if (!all_moves[i].empty()) remaining = true;
             }
+            if (!hermonics && updated && !grounded(box)) {
+                hermonics = true;
+                traces.push_back(Flip());
+            } else {
+                traces.push_back(Wait());
+            }
             if (!remaining) break;
         }
         
+        int num = traces.size();
         
         for (int i = cz - 3; i >= 0; i--) {
             vector <command> moves = get_moves(position(0, 0, -29));
@@ -694,6 +777,14 @@ vector <command> calc_large(const region& box, const position& p) {
             bots--;
         }
         
+        if (cx == 2 && cz == 2) {
+            traces.push_back(FusionP(-1, 0, 0));
+            traces.push_back(FusionS(1, 0, 0));
+        } else {
+            traces[num] = FusionP(-1, 0, 0);
+            traces.insert(traces.begin() + num + (cx - 1) * (cz - 1), FusionS(1, 0, 0));
+        }
+        
         {
             vector <command> moves = get_moves(position(-31, 0, -30));
             traces.insert(traces.end(), moves.begin(), moves.end());
@@ -742,6 +833,8 @@ vector <command> calc_large(const region& box, const position& p) {
         }
     }
     
+    traces[traces.size() - 7] = Fission(0, 1, 0, 0);
+    
     {
         int z = 0;
         while (true) {
@@ -758,10 +851,11 @@ vector <command> calc_large(const region& box, const position& p) {
                 traces.push_back(Wait());
                 traces.push_back(Wait());
                 traces.push_back(Wait());
+                traces.push_back(Wait());
                 
                 vector <command> moves_fission = get_moves(position(0, -min(29, p.y - 1), 0));
                 for (int i = 0; i < moves_fission.size(); i++) {
-                    for (int j = 0; j < 8; j++) {
+                    for (int j = 0; j < 9; j++) {
                         if (j == 3) {
                             traces.push_back(moves_fission[i]);
                         } else {
@@ -782,6 +876,23 @@ vector <command> calc_large(const region& box, const position& p) {
                     traces.push_back(GVoid(1, -1, 0, dx, dy, -dz));
                     traces.push_back(GVoid(1, 0, 1, dx, dy, dz));
                     
+                    for (int i = 0; i <= dx; i++) {
+                        for (int j = 0; j <= dy; j++) {
+                            for (int k = 0; k <= dz; k++) {
+                                int nx = box.p1.x + x + i;
+                                int ny = y - dy - 1 + j;
+                                int nz = box.p1.z + z + k;
+                                matrix[nx][ny][nz] = false;
+                            }
+                        }
+                    }
+                    if (grounded(box) == hermonics) {
+                        hermonics = !hermonics;
+                        traces.push_back(Flip());
+                    } else {
+                        traces.push_back(Wait());
+                    }
+                    
                     if (y <= 31) break;
                     
                     dy = min(30, y - dy - 1);
@@ -789,18 +900,19 @@ vector <command> calc_large(const region& box, const position& p) {
                     
                     vector <command> moves_y = get_moves(position(0, -dy, 0));
                     for (int i = 0; i < moves_y.size(); i++) {
-                        for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
+                        for (int j = 0; j < 9; j++) traces.push_back(moves_y[i]);
                     }
                 }
                 
                 vector <command> moves_y = get_moves(position(0, p.y + 1 - y, 0));
                 for (int i = 0; i < moves_y.size(); i++) {
                     for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
+                    traces.push_back(Wait());
                 }
                 
                 vector <command> moves_fusion = get_moves(position(0, min(29, p.y - 1), 0));
                 for (int i = 0; i < moves_fusion.size(); i++) {
-                    for (int j = 0; j < 8; j++) {
+                    for (int j = 0; j < 9; j++) {
                         if (j == 3) {
                             traces.push_back(moves_fusion[i]);
                         } else {
@@ -817,6 +929,7 @@ vector <command> calc_large(const region& box, const position& p) {
                 traces.push_back(Wait());
                 traces.push_back(Wait());
                 traces.push_back(Wait());
+                traces.push_back(Wait());
                 
                 if (p.x - x <= 29) break;
                 
@@ -826,12 +939,14 @@ vector <command> calc_large(const region& box, const position& p) {
                 vector <command> moves_x = get_moves(position(dx, 0, 0));
                 for (int i = 0; i < moves_x.size(); i++) {
                     for (int j = 0; j < 7; j++) traces.push_back(moves_x[i]);
+                    traces.push_back(Wait());
                 }
             }
             
             vector <command> moves_x = get_moves(position(-x, 0, 0));
             for (int i = 0; i < moves_x.size(); i++) {
                 for (int j = 0; j < 7; j++) traces.push_back(moves_x[i]);
+                traces.push_back(Wait());
             }
             
             if (p.z - z <= 29) break;
@@ -842,20 +957,14 @@ vector <command> calc_large(const region& box, const position& p) {
             vector <command> moves_z = get_moves(position(0, 0, dz));
             for (int i = 0; i < moves_z.size(); i++) {
                 for (int j = 0; j < 7; j++) traces.push_back(moves_z[i]);
+                traces.push_back(Wait());
             }
         }
         
         vector <command> moves_z = get_moves(position(0, 0, -z));
         for (int i = 0; i < moves_z.size(); i++) {
             for (int j = 0; j < 7; j++) traces.push_back(moves_z[i]);
-        }
-    }
-    
-    for (int i = 0; i < traces.size(); i++) {
-        if (traces[traces.size() - i - 1].op == WAIT) {
-            traces[traces.size() - i - 1] = Flip();
-            hermonics = false;
-            break;
+            traces.push_back(Wait());
         }
     }
     
@@ -863,13 +972,18 @@ vector <command> calc_large(const region& box, const position& p) {
         
         vector <command> moves_y = get_moves(position(0, min(29, p.y - 1), 0));
         for (int i = 0; i < moves_y.size(); i++) {
-            traces.push_back(Wait());
+            if (i == 0) {
+                traces.push_back(FusionP(0, 1, 0));
+            } else {
+                traces.push_back(Wait());
+            }
             traces.push_back(Wait());
             traces.push_back(Wait());
             traces.push_back(moves_y[i]);
             traces.push_back(Wait());
             traces.push_back(moves_y[i]);
             traces.push_back(moves_y[i]);
+            if (i == 0) traces.push_back(FusionS(0, -1, 0));
         }
         
         traces.push_back(FusionP(0, -1, 0));
