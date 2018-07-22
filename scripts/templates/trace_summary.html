@@ -8,6 +8,7 @@ Nanachi
 <table class="table">
 <thead>
 <tr>
+    <td>Problem</td>
     <td>Submit Time</td>
     <td>Energy</td>
     <td>Author</td>
@@ -16,6 +17,7 @@ Nanachi
 </tr>
 </thead>
 <tbody>
+    <td><a href="{{ url_for('problem_summary', name=trace['name']) }}">{{ trace['name'] }}</a></td>
     <td>{{ trace.submit_time_string }}</td>
     <td>{{ trace.energy }}</td>
     <td>{{ trace.author }}</td>
@@ -23,9 +25,6 @@ Nanachi
     <td>{{ trace.energy_autoscorer }}</td>
 </tbody>
 </table>
-<div>
-    <a href="{{ url_for('model_summary', name=trace['name']) }}">Model</a>
-</div>
 <div>
     <a href="{{ url_for('trace_blob', trace_id=trace['id']) }}">Download nbt file</a>
 </div>

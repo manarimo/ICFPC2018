@@ -230,10 +230,11 @@ struct State {
     int filled;
     Model* sourceModel;
     Model* targetModel;
+    bool needReground;
 
     State(Model* sourceModel, Model* targetModel)
         : energy(0), harmonics(LOW), r(sourceModel->size), ds(r * r * r + 1), ground(r * r * r), filled(0),
-          sourceModel(sourceModel), targetModel(targetModel) {
+          sourceModel(sourceModel), targetModel(targetModel), needReground(false) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -328,22 +329,52 @@ struct State {
         ds.unite(hashCoord(p1), ground);
     }
 
-    void fill(const Coord &p) {
+    void fill(const Coord &p, bool isFill = true) {
         assert(isValidPoint(p));
-        if (field[p.x][p.y][p.z] == false) {
-            field[p.x][p.y][p.z] = true;
-            filled++;
-        }
+        if (isFill) {
+            if (field[p.x][p.y][p.z] == false) {
+                field[p.x][p.y][p.z] = true;
+                filled++;
+            }
 
-        for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
-            Coord q = p + c;
-            if (isValidPoint(q) && field[q.x][q.y][q.z]) {
-                connect(p, q);
+            for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+                Coord q = p + c;
+                if (isValidPoint(q) && field[q.x][q.y][q.z]) {
+                    connect(p, q);
+                }
+            }
+            if (p.y == 0) {
+                connectToGround(p);
+            }
+        } else {
+            field[p.x][p.y][p.z] = false;
+            needReground = true;
+        }
+    }
+
+    void reground() {
+        ds = DisjointSet(r * r * r + 1);
+        filled = 0;
+        for (int x = 0; x < r; ++x) {
+            for (int y = 0; y < r; ++y) {
+                for (int z = 0; z < r; ++z) {
+                    const Coord p{x, y, z};
+                    if (field[x][y][z]) {
+                        ++filled;
+                        if (y == 0) {
+                            connectToGround(p);
+                        }
+                    }
+                    for (auto c : {Coord{1, 0, 0}, Coord{-1, 0, 0}, Coord{0, 1, 0}, Coord{0, -1, 0}, Coord{0, 0, 1}, Coord{0, 0, -1}}) {
+                        const Coord q = p + c;
+                        if (isValidPoint(q) && field[q.x][q.y][q.z]) {
+                            connect(p, q);
+                        }
+                    }
+                }
             }
         }
-        if (p.y == 0) {
-            connectToGround(p);
-        }
+        needReground = false;
     }
 
     void checkMove(const Coord &coord, const Coord &d) const {
@@ -582,8 +613,9 @@ struct FissionCommand : public Command {
 
 struct FillCommand : public Command {
     Coord d;
+    bool isFill;
 
-    FillCommand(const Coord &d) : d(d) {
+    FillCommand(const Coord &d, bool isFill) : d(d), isFill(isFill) {
         assert(d.isNeardistance());
     }
 
@@ -606,15 +638,24 @@ struct FillCommand : public Command {
         const NanoBot &bot = state.bot(botId);
         const Coord next = bot.position + d;
         if (state.isFilled(next)) {
-            state.energy += 6;
+            if (isFill) {
+                state.energy += 6;
+            } else {
+                state.fill(next, false);
+                state.energy -= 12;
+            }
         } else {
-            state.fill(next);
-            state.energy += 12;
+            if (isFill) {
+                state.fill(next);
+                state.energy += 12;
+            } else {
+                state.energy += 3;
+            }
         }
     }
 
     virtual ostream& print(ostream &os) const {
-        return os << "<FillCommand d=" << d << ">";
+        return os << "<" << (isFill ? "Fill" : "Void") << "Command d=" << d << ">";
     }
 };
 
@@ -700,8 +741,9 @@ struct FusionSCommand : public Command {
 
 struct GFillCommand : public Command {
     Coord nd, fd;
+    bool isFill;
 
-    GFillCommand(const Coord &nd, const Coord &fd) : nd(nd), fd(fd) {
+    GFillCommand(const Coord &nd, const Coord &fd, bool isFill) : nd(nd), fd(fd), isFill(isFill) {
         assert(nd.isNeardistance());
         assert(fd.isFarDistance());
     }
@@ -736,10 +778,19 @@ struct GFillCommand : public Command {
                 loopRange(c1.z, c2.z, [&](int z) {
                     const Coord c{x, y, z};
                     if (state.isFilled(c)) {
-                        state.energy += 6;
+                        if (isFill) {
+                            state.energy += 6;
+                        } else {
+                            state.fill(c, false);
+                            state.energy -= 12;
+                        }
                     } else {
-                        state.fill(c);
-                        state.energy += 12;
+                        if (isFill) {
+                            state.fill(c, true);
+                            state.energy += 12;
+                        } else {
+                            state.energy += 3;
+                        }
                     }
                 });
             });
@@ -747,7 +798,7 @@ struct GFillCommand : public Command {
     }
 
     virtual ostream& print(ostream &os) const {
-        return os << "<GFillCommand nd=" << nd << ", fd=" << fd << ">";
+        return os << "<" << (isFill ? "GFill" : "GVoid") << "Command nd=" << nd << ", fd=" << fd << ">";
     }
 
     Region targetRegion(State &state, int botId) const {
@@ -880,6 +931,11 @@ void runStep(State &state, deque<Command*> &commands) {
     }
     commands.erase(commands.begin(), it);
 
+    // Recalculate ground state because it's dirty now due to Void commands
+    if (state.needReground) {
+        state.reground();
+    }
+
     // If the harmonics is Low, then all Full voxels of the matrix are grounded.
     if (state.harmonics == LOW) {
         state.checkPhysics();
@@ -980,13 +1036,21 @@ deque<Command*> compile(const char *filename) {
             in.read(reinterpret_cast<char*>(&b2), sizeof(b2));
             commands.push_back(new FissionCommand(decodeNearDistance(b1 >> 3), b2));
         } else if ((b1 & 0x07) == 0b011) {
-            commands.push_back(new FillCommand(decodeNearDistance(b1 >> 3)));
+            commands.push_back(new FillCommand(decodeNearDistance(b1 >> 3), true));
+        } else if ((b1 & 0x07) == 0b010) {
+            commands.push_back(new FillCommand(decodeNearDistance(b1 >> 3), false));
         } else if ((b1 & 0x07) == 0b001) {
             unsigned char b2, b3, b4;
             in.read(reinterpret_cast<char*>(&b2), sizeof(b2));
             in.read(reinterpret_cast<char*>(&b3), sizeof(b3));
             in.read(reinterpret_cast<char*>(&b4), sizeof(b4));
-            commands.push_back(new GFillCommand(decodeNearDistance(b1 >> 3), decodeFarDistance(b2, b3, b4)));
+            commands.push_back(new GFillCommand(decodeNearDistance(b1 >> 3), decodeFarDistance(b2, b3, b4), true));
+        } else if ((b1 & 0x07) == 0b000) {
+            unsigned char b2, b3, b4;
+            in.read(reinterpret_cast<char*>(&b2), sizeof(b2));
+            in.read(reinterpret_cast<char*>(&b3), sizeof(b3));
+            in.read(reinterpret_cast<char*>(&b4), sizeof(b4));
+            commands.push_back(new GFillCommand(decodeNearDistance(b1 >> 3), decodeFarDistance(b2, b3, b4), false));
         }
         //cout << *commands.back() << endl;
     }

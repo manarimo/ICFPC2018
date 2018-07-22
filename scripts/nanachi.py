@@ -32,9 +32,12 @@ def assets(path):
 @app.route("/api/pending_traces")
 def pending_traces():
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+    cursor.execute("SELECT p.name AS problem_name, trace_id, energy, author, comment, "
+                   "src.name AS src_model, tgt.name AS tgt_model, p.type AS problem_type "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
-                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id "
+                   "JOIN tblproblem p ON p.id = tbltrace.problem_id "
+                   "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
+                   "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
                    "WHERE tbltrace_metadata.energy_autoscorer IS NULL AND tbltrace_metadata.failed IS NULL")
     traces = cursor.fetchall()
     cursor.close()
@@ -118,9 +121,9 @@ def trace_blob(trace_id: int):
 def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
-        "SELECT tbltrace.id AS id, model_id, tblmodel.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
+        "SELECT tbltrace.id AS id, tblproblem.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
         "tm.submit_time AS submit_time, tm.energy_autoscorer AS energy_autoscorer "
-        "FROM tbltrace JOIN tblmodel ON tbltrace.model_id = tblmodel.id "
+        "FROM tbltrace JOIN tblproblem ON tbltrace.problem_id = tblproblem.id "
         "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
         "WHERE tbltrace.id=%s",
         (trace_id,))
@@ -210,6 +213,47 @@ def model_list():
 
     return render_template("model_list.html", models=rows)
 
+@app.route("/problem_list")
+def problem_list():
+    lightning = request.args.get('lightning') == 'true'
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT p.id, p.name, p.type, src.name AS src_name, tgt.name AS tgt_name FROM tblproblem p "
+        "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
+        "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
+        "WHERE p.is_lightning=%s",
+        (lightning,))
+    rows = cursor.fetchall()
+    cursor.close()
+    connection.commit()
+
+    return render_template("problem_list.html", problems=rows)
+
+@app.route("/problems/<name>")
+def problem_summary(name: str):
+    tracecursor = connection.cursor(dictionary=True)
+    tracecursor.execute(
+        "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
+        "FROM tbltrace JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
+        "JOIN tblproblem ON tbltrace.problem_id = tblproblem.id WHERE tblproblem.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
+        (name,))
+    tracerows = tracecursor.fetchall()
+    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
+    tracecursor.close()
+    connection.commit()
+
+    problemcursor = connection.cursor(dictionary=True)
+    problemcursor.execute(
+        "SELECT p.id, p.name, p.type, src.name AS src_name, tgt.name AS tgt_name FROM tblproblem p "
+        "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
+        "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
+        "WHERE p.name=%s",
+        (name,))
+    problem = problemcursor.fetchone()
+    problemcursor.close()
+    connection.commit()
+
+    return render_template('problem_summary.html', name=name, traces=tracerows, problem=problem)
 
 @app.route("/")
 def hello():
