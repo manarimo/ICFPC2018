@@ -4,13 +4,6 @@ Nanachi
 {% endblock %}
 {% block content %}
 <h1>Problem {{ name }}</h1>
-{% if problem['tgt_name'] %}
-<div>
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl.png" width="150">
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-45deg.png" width="150">
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-315deg.png" width="150">
-</div>
-{% endif %}
 <div>
     {% if problem %}
     <h2>Summary</h2>
