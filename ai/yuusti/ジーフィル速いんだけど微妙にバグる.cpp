@@ -187,12 +187,12 @@ struct bot {
     void smove(P lld, int turn) {
         if (!active) return;
         assert(validSmove(lld));
-        cerr << bid << ':' << pos << "->" << pos + lld << endl;
         assert(canEnter(pos + lld, turn));
         fillVolatile(pos, pos + lld, turn);
         pos = pos + lld;
         vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
+        cerr << bid << ':' << pos << "->" << pos + lld << endl;
         cout << bid << ": ";
 #endif
         cout << "smove " << lld << '\n';
@@ -201,13 +201,13 @@ struct bot {
     void lmove(P sld1, P sld2, int turn) {
         if (!active) return;
         assert(validLmove(sld1, sld2));
-        cerr << bid << ':' << pos << "->" << pos + sld1 + sld2 << endl;
         assert(canEnter(pos + sld1 + sld2, turn));
         fillVolatile(pos, pos + sld1, turn);
         fillVolatile(pos + sld1, pos + sld1 + sld2, turn);
         pos = pos + sld1 + sld2;
         vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
+        cerr << bid << ':' << pos << "->" << pos + sld1 + sld2 << endl;
         cout << bid << ": ";
 #endif
         cout << "lmove " << sld1 << ' ' << sld2 << '\n';
@@ -383,7 +383,6 @@ vector<int> calcBlockSum(int y, int xs) {
 }
 
 vector<int> addNext(vector<queue<P>> &q, int y) {
-    cerr << "finding next points" << endl;
     auto range = calcBlockSum(y, SEED / 2);
 
     for (int x = 0; x < R; ++x) {
@@ -395,8 +394,6 @@ vector<int> addNext(vector<queue<P>> &q, int y) {
                 if (x < range[i]) {
                     q[(i - 1) * 2].push({x, y + 1, z - 1});
                     q[(i - 1) * 2 + 1].push({x, y + 1, r});
-                    cerr << "task for " << (i - 1) * 2  << ": " << P{x, y + 1, z - 1} << endl;
-                    cerr << "task for " << (i - 1) * 2 + 1  << ": " << P{x, y + 1, r} << endl;
                     z = r - 1;
                     break;
                 }
@@ -571,12 +568,10 @@ int main() {
     cerr << "fission start" << endl;
     int activeBots = 1;
     while (activeBots < SEED) {
-        cerr << "turn:" << turn << endl;
         auto fission = vector<function<bool(bot &)>>(SEED, NOP);
 
         for (int i = SEED; i >= 0; --i) {
             if (!bots[i].active) continue;
-            cerr << "remaining seed of " << i << ": " << bots[i].seed << endl;
             if (bots[i].seed <= 1) continue;
             auto &p = bots[i].pos;
 
@@ -589,14 +584,15 @@ int main() {
             int m = bots[i].seed > 2 ? bots[i].seed / 2 : 0;
             if (canEnter(p + nd, turn)) {
                 fission[i] = [nd, m](bot &b) {
-                    cerr << "creating a new bot at " << b.pos << endl;
                     b.fission_manual(nd, m);
                     return true;
                 };
 
                 bots[i].seed -= m + 1;
+#ifdef DBG
                 cerr << "creating..." << activeBots + 1 << "/" << SEED << " with seed " << m << endl;
                 cerr << "remaining seed of " << i << ": " << bots[i].seed << endl;
+#endif
                 // creating a new bot
                 {
                     int cnt = 0;
@@ -613,12 +609,10 @@ int main() {
                         }
                     }
                     assert(nbid > 0);
-                    cerr << "created -> " << nbid << endl;
                     vol[p.x][p.y][p.z] = turn + 2;
                     vol[p.x + nd.x][p.y + nd.y][p.z + nd.z] = turn + 2;
                     bots[nbid] = (bot{p + nd, nbid, s, m + 1, true});
                     fission[nbid] = [](bot &b) {
-                        cerr << "bot" << b.bid << " created at " << b.pos << endl;
                         return true;
                     };
                     ++activeBots;
@@ -628,7 +622,6 @@ int main() {
 
         moveBots(bots, dst, fission, turn);
     }
-    cerr << "end fission" << endl;
     cerr << "fission end" << endl;
 
     int cnt = 0, curY = 1;
@@ -637,17 +630,15 @@ int main() {
         for (int i = 0; i < SEED; ++i) {
             if (q[i].empty()) {
                 dst[i] = P{bots[i].pos.x, curY + 1, bots[i].pos.z};
-            } else {
-                cerr << "remaining" << endl;
-                cerr << bots[i].pos << endl;
-                cerr << q[i].front() << endl;
             }
             ok &= q[i].empty();
         }
 
         if (ok) {
+#ifdef DBG
             cerr << "height " << curY << " OK" << endl;
             cerr << "placed " << cnt << "/" << NUM << " so far" << endl;
+#endif
             range = addNext(q, curY);
             for (int i = 0; i < SEED / 2; ++i) {
                 dst[i] = (P{range[i], curY + 1, 0});
@@ -676,8 +667,10 @@ int main() {
                 P aedge = bots[a].pos + na;
                 P bedge = bots[b].pos + nb;
                 if (abs(bedge - aedge) != 0) {
+#ifdef DBG
                     cerr << "gfill: " << bedge << " to " <<  aedge << endl;
                     cerr << "gfill: " << bedge - aedge << endl;
+#endif
                     gfill[a] = [=](bot &botA) {
                         botA.gfill(na, bedge - aedge);
                         return true;
@@ -705,8 +698,10 @@ int main() {
         }
         for (int i = 0; i < SEED; ++i) {
             if (busy.count(i)) continue;
+#ifdef DBG
             cerr << "uf: " << uf.size(0) << endl;
             cerr << "cnt + 1: " << cnt + 1 << endl;
+#endif
             if (high && uf.size(0) == cnt + 1 || !high && uf.size(0) < cnt + 1) {
                 gfill[i] = [](bot &b) {
                     b.flip();
@@ -753,8 +748,10 @@ int main() {
             for (int j = i + 1; j < bots.size(); ++j) {
                 if (!bots[j].active) continue;
                 if (abs(bots[i].pos - bots[j].pos) == 1) {
+#ifdef DBG
                     cerr << "fusion->" << i << '&' << j << endl;
                     cerr << bots[i].pos << ' ' << bots[j].pos << endl;
+#endif
                     f[i] = [=](bot &b) {
                         b.fusion(bots[j].pos, true, turn);
                         return true;
