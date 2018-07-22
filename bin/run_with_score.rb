@@ -34,7 +34,8 @@ Dir.chdir("#{work_dir}/hissen/src")
 
 if File.exists?(File.expand_path('~/venv'))
   url = `~/venv/bin/python #{work_dir}/scripts/upload_to_s3.py #{nbt_path}`
-  sha1 = `sha1sum #{nbt_path}`.split[0]
+  sha1 = `sha1sum #{nbt_path}`.split[0][0...20]
+  puts "#{sha1} #{url}"
   json = JSON.parse(`curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F s3url="#{url}" -F sha1sum=#{sha1} http://nanachi.kadingel.osak.jp/traces/register`)
   done_upload = true
   pp json

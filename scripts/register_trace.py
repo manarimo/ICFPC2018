@@ -16,11 +16,11 @@ def register(name: str, blob: bytes, energy: int, author: str, comment: str, s3_
     problem_id = cursor.fetchone()["id"]
     negenergy = -energy if energy is not None else None
     if blob:
-        cursor.execute("INSERT INTO tbltrace (problem_id, body, score, sha1, s3url) VALUES (%s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, blob, negenergy, digest, s3_url, negenergy))
+        cursor.execute("INSERT INTO tbltrace (problem_id, body, score, sha1) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, blob, negenergy, digest, negenergy))
     else:
-        cursor.execute("INSERT INTO tbltrace (problem_id, score, sha1, s3url) VALUES (%s, %s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, negenergy, sha1sum, s3_url, negenergy))
+        cursor.execute("INSERT INTO tbltrace (problem_id, score, sha1) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, negenergy, sha1sum, negenergy))
     trace_id = cursor.lastrowid
-    cursor.execute("REPLACE INTO tbltrace_metadata (trace_id, energy, author, comment) VALUES (%s, %s, %s, %s)", (trace_id, energy, author, comment))
+    cursor.execute("REPLACE INTO tbltrace_metadata (trace_id, energy, author, comment, s3url) VALUES (%s, %s, %s, %s, %s)", (trace_id, energy, author, comment, s3_url))
     cursor.close()
     connection.commit()
     connection.close()

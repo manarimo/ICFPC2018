@@ -113,7 +113,6 @@ def trace_register():
         trace_id = register_trace.register(name, nbt_blob, energy, author, comment, s3_url, sha1sum)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
-        raise e
         return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
 
 
@@ -305,4 +304,4 @@ def hello():
 if __name__ == "__main__":
     message_level = logging.WARN if const.env == "prod" else logging.INFO
     logging.basicConfig(level=message_level)
-    app.run(host="localhost", port=8081, processes=4, threaded=False)
+    app.run(host="localhost", port=8081, processes=12, threaded=False)
