@@ -4,28 +4,55 @@ Nanachi
 {% endblock %}
 {% block content %}
 <h1>Problem {{ name }}</h1>
-<div>
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl.png" width="150">
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl-up-45deg.png" width="150">
-    <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl-up-315deg.png" width="150">
-</div>
+{% if problem['tgt_name'] %}
 <div>
     <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl.png" width="150">
     <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-45deg.png" width="150">
     <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-315deg.png" width="150">
 </div>
+{% endif %}
 <div>
     {% if problem %}
     <h2>Summary</h2>
     <table class="table">
     <thead>
     <tr>
-        <td>Type</td>
+        <th>Type</th>
+        <th>Src Model</th>
+        <th>Tgt Model</th>
     </tr>
     </thead>
     <tbody>
     <tr>
         <td>{{ problem.type }}</td>
+        <td>
+            {% if problem['src_name'] %}
+            <div>
+                <a href="{{ url_for('model_summary', name=problem['src_name']) }}">{{ problem['src_name'] }}</a>
+            </div>
+            <div>
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl.png" width="100">
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl-up-45deg.png" width="100">
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['src_name']}}.mdl-up-315deg.png" width="100">
+            </div>
+            {% else %}
+            None
+            {% endif %}
+        </td>
+        <td>
+            {% if problem['tgt_name'] %}
+            <div>
+                <a href="{{ url_for('model_summary', name=problem['tgt_name']) }}">{{ problem['tgt_name'] }}</a>
+            </div>
+            <div>
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl.png" width="100">
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-45deg.png" width="100">
+                <img src="http://tools.kadingel.osak.jp/saverwing/thumbnails/{{problem['tgt_name']}}.mdl-up-315deg.png" width="100">
+            </div>
+            {% else %}
+            None
+            {% endif %}
+        </td>
     </tr>
     </tbody>
     </table>
