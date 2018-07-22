@@ -11,6 +11,7 @@
 #include <string>
 #include <map>
 #include <algorithm>
+#include <set>
 
 using namespace std;
 
@@ -267,7 +268,7 @@ struct Bot {
                 auto d2 = d1 + command.p2;
                 auto vc1 = region(p, d1).internals();
                 auto vc2 = region(d1, d2).internals();
-                remove(vc2.begin(), vc2.end(), d1);
+                vc2.erase(remove(vc2.begin(), vc2.end(), d1), vc2.end());
                 vc1.insert(vc1.end(), vc2.begin(), vc2.end());
                 return vc1;
             }
@@ -275,7 +276,7 @@ struct Bot {
     }
 };
 
-const int MAX_BOTS = 20;
+const int MAX_BOTS = 40;
 
 struct State {
     bool hermony;
@@ -615,6 +616,8 @@ vector<Step> eagerExecution(vector<Step> &steps) {
     vector<Step> new_steps = steps;
     for (int turn = (int)new_steps.size() - 2; turn >= 0; --turn) {
         for (int bot_id = 0; bot_id < new_steps[turn + 1].state.bots.size(); ++bot_id) {
+            assert (new_steps[turn+1].state.activeBots().size() == new_steps[turn+1].multiCommand.commands.size());
+
             if (!new_steps[turn + 1].state.bots[bot_id].active) {
                 continue;
             }
@@ -667,8 +670,15 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 }
                 case FISSION: {
                     int sub_id = new_steps[turn].state.bots[bot_id].seeds.front();
+                    int sub_command_id = 0;
+                    for (int i = 0; i < new_steps[turn + 1].state.bots.size(); ++i) {
+                        if (new_steps[turn + 1].state.bots[i].active && i < sub_id) {
+                            ++sub_command_id;
+                        }
+                    }
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
+                    new_steps[turn + 1].multiCommand.commands.insert(new_steps[turn + 1].multiCommand.commands.begin() + sub_command_id, wait());
                     new_steps[turn + 1].state.bots[bot_id] = new_steps[turn + 2].state.bots[bot_id];
                     new_steps[turn + 1].state.bots[sub_id] = new_steps[turn + 2].state.bots[sub_id];
                     break;
@@ -723,6 +733,8 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                     // do nothing
                     break;
             }
+            assert (new_steps[turn+1].state.activeBots().size() == new_steps[turn+1].multiCommand.commands.size());
+
         }
 
     }
@@ -730,15 +742,87 @@ vector<Step> eagerExecution(vector<Step> &steps) {
 }
 
 vector<Step> mergeMoves(vector<Step> &steps) {
+    vector<Step> new_steps = steps;
 
-}
+    for (int turn = 0; turn + 1 < steps.size(); ++turn) {
+        auto &thisStep = new_steps[turn];
+        auto &nextStep = new_steps[turn + 1];
+        auto &nextNextStep = new_steps[turn + 2];
+        auto &thisState = thisStep.state;
+        auto &nextState = nextStep.state;
+        auto &nextNextState = nextNextStep.state;
+        for (int bot_id = 0; bot_id < thisState.bots.size(); ++bot_id) {
+            if (!thisState.bots[bot_id].active) {
+                continue;
+            }
+            if (!nextState.bots[bot_id].active) {
+                continue;
+            }
+            auto commands = nextStep.botCommands();
+            auto prev_commands = thisStep.botCommands();
+            assert (prev_commands.find(bot_id) != prev_commands.end());
+            auto prev_command = prev_commands[bot_id];
+            if (prev_command.op != SMOVE && prev_command.op != LMOVE) {
+                continue;
+            }
+            assert (commands.find(bot_id) != commands.end());
+            auto next_command = commands[bot_id];
+            if (next_command.op != SMOVE && next_command.op != LMOVE) {
+                continue;
+            }
 
-vector<Step> optimizeFusion(vector<Step> &steps) {
+            auto totalDelta = nextNextState.bots[bot_id].p - thisState.bots[bot_id].p;
+            int zeroCount = (totalDelta.x == 0) + (totalDelta.y == 0) + (totalDelta.z == 0);
+            command newCommand;
+            if (zeroCount == 2) {
+                if (manhattan(totalDelta) <= 15) {
+                    newCommand = smove(totalDelta);
+                } else {
+                    continue;
+                }
+            } else if (zeroCount == 1) {
+                if (chebyshev(totalDelta) <= 5) {
+                    vector<position> ps = {position(totalDelta.x, 0, 0), position(0, totalDelta.y, 0), position(0, 0, totalDelta.z)};
+                    ps.erase(remove(ps.begin(), ps.end(), position(0, 0, 0)), ps.end());
+                    assert (ps.size() == 2);
+                    newCommand = lmove(ps[0], ps[1]);
+                } else {
+                    continue;
+                }
+            } else {
+                continue;
+            }
 
-}
+            auto vcs = new_steps[turn].volatileCoordinates();
+            auto bot = new_steps[turn].state.bots[bot_id];
+            auto current_vcs_v = bot.volatileCoordinates(prev_command);
+            auto current_vcs = set<position>(current_vcs_v.begin(), current_vcs_v.end());
+            auto new_vcs = bot.volatileCoordinates(newCommand);
+            bool ok = true;
+            for (auto &&vc : new_vcs) {
+                if ((current_vcs.find(vc) == current_vcs.end()) && vcs[vc.x][vc.y][vc.z]) {
+                    ok = false;
+                    break;
+                }
+            }
+            if (not ok) {
+                // vc collision
+                continue;
+            }
+            // These moves can be merged!
+            auto thisCommandIds = thisStep.botCommandIds();
+            int thisCommandId = thisCommandIds[bot_id];
+            auto nextCommandIds = nextStep.botCommandIds();
+            int nextCommandId = nextCommandIds[bot_id];
 
-vector<Step> optimizeFission(vector<Step> &steps) {
+            thisStep.multiCommand.commands[thisCommandId] = newCommand;
+            nextStep.multiCommand.commands[nextCommandId] = wait();
+            nextStep.state.bots[bot_id] = nextNextStep.state.bots[bot_id];
 
+            assert (new_steps[turn+1].state.activeBots().size() == new_steps[turn+1].multiCommand.commands.size());
+        }
+    }
+    return new_steps;
 }
 
 vector<Step> skipAllWaits(vector<Step> &steps) {
@@ -784,10 +868,11 @@ int main(int argc, char** argv) {
     cerr << "calculated state history" << endl;
 
     int current_steps;
-    int least_loops = 10;
+    int least_loops = 4;
     do {
         current_steps = steps.size();
         steps = eagerExecution(steps);
+        steps = mergeMoves(steps);
         steps = skipAllWaits(steps);
         cerr << "optimization iteration done. current #turns " << steps.size() << endl;
     } while (steps.size() < current_steps || least_loops--);
