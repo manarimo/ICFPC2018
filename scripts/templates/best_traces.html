@@ -29,11 +29,11 @@ Nanachi
     </thead>
     <tbody>
     {% for trace in traces %}
-    <tr>
+    <tr style="{{ 'background-color: lightpink' if trace['energy_to_use'] and trace['ranking_energy'] and trace['energy_to_use'] > trace['ranking_energy'] else '' }}">
         <td><a href="{{ url_for('problem_summary', name=trace['problem_name']) }}">{{ trace['problem_name'] }}</a> </td>
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
-        <td>{{ "%.3E"|format((trace['energy_autoscorer'] or 0) if autoscorer else (trace['energy'] or 0)) }}</td>
-        <td>{{ trace['ranking_best'] or ''}}</td>
+        <td>{{ "%.3E"|format(trace['energy_to_use'] or 0) }}</td>
+        <td>{{ ("%.3E (%s)" % (trace['ranking_energy'], trace['ranking_name'])) if trace['ranking_name'] or ''}}</td>
         <td>{{ trace['author'] }}</td>
         <td>{{ trace['comment'] }}</td>
     </tr>

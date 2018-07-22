@@ -38,7 +38,7 @@ def pending_traces():
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
                    "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
                    "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
-                   "WHERE tbltrace_metadata.energy_autoscorer IS NULL AND tbltrace_metadata.failed IS NULL")
+                   "WHERE tbltrace_metadata.energy_autoscorer IS NULL AND tbltrace_metadata.failed IS NULL AND author != 'icfpc2018'")
     traces = cursor.fetchall()
     cursor.close()
     connection.commit()
@@ -52,7 +52,7 @@ def best_traces():
     lightning = request.args.get('lightning') == 'true'
     autoscorer = request.args.get('autoscorer') == 'true'
     cursor.execute("SELECT p.name AS problem_name, trace_id, tbltrace_metadata.energy, energy_autoscorer, author, comment,"
-                   "  CONCAT(r.energy, ' (', r.name, ')') AS ranking_best "
+                   "  r.energy AS ranking_energy, r.name AS ranking_name "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
                    "LEFT OUTER JOIN tblofficial_ranking r ON p.id = r.problem_id "
@@ -62,6 +62,11 @@ def best_traces():
     def energy_order(energy):
         return energy is None, energy
     for trace in cursor.fetchall():
+        if autoscorer:
+            trace['energy_to_use'] = trace['energy_autoscorer']
+        else:
+            trace['energy_to_use'] = trace['energy']
+
         problem_name = trace["problem_name"]
         if problem_name not in traces:
             traces[problem_name] = trace

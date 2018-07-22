@@ -180,7 +180,7 @@ struct bot {
 
     void wait(int turn) {
         if (!active) return;
-        vol[pos.x][pos.y][pos.z] = turn + 2;
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 
 #ifdef DBG
         cout << bid << ": ";
@@ -204,7 +204,7 @@ struct bot {
         assert(canEnter(pos + lld, turn));
         fillVolatile(pos, pos + lld, turn);
         pos = pos + lld;
-        vol[pos.x][pos.y][pos.z] = turn + 2;
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
         cout << bid << ": ";
 #endif
@@ -219,7 +219,7 @@ struct bot {
         fillVolatile(pos, pos + sld1, turn);
         fillVolatile(pos + sld1, pos + sld1 + sld2, turn);
         pos = pos + sld1 + sld2;
-        vol[pos.x][pos.y][pos.z] = turn + 2;
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
         cout << bid << ": ";
 #endif
@@ -232,10 +232,10 @@ struct bot {
 #endif
         cout << "fusion" << (p ? "p " : "s ") << other - pos << '\n';
         if (p) {
-            vol[pos.x][pos.y][pos.z] = turn + 2;
+            vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
         } else {
             active = false;
-            vol[pos.x][pos.y][pos.z] = turn + 1;
+            vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 1);
         }
     }
 
@@ -282,7 +282,6 @@ struct bot {
 #ifdef DBG
         cout << bid << ": ";
 #endif
-        fillVolatile(pos + nd, pos + nd + fd, INF);
         cout << "gfill " << nd << ' ' << fd << '\n';
     }
 
@@ -357,14 +356,18 @@ void input() {
 }
 
 vector<int> calcBlockSum(int y, int xs) {
-    cerr << "calcBlockSum" << endl;
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
         for (int z = 0; z < R; ++z) {
-            block[x] += (field[x][y][z] && z == 0) || z > 0 && !field[x][y][z - 1] && field[x][y][z];
+//            if (!field[x][y][z]) continue;
+            int r = z;
+            while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
+            ++block[x];
+            z = r - 1;
         }
         sum[x + 1] = sum[x] + block[x];
     }
+
     vector<vector<int>> dp(R + 1, vector<int>(xs + 1, INF)), prv(R + 1, vector<int>(xs + 1, 0));
     dp[0][0] = 0;
 
@@ -530,6 +533,30 @@ void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot
 
 const function<bool(bot &)> NOP = [](bot b) { return false; };
 
+void addConectivity(const P &src, const P &dst, UnionFind &uf) {
+    for (int x = min(src.x, dst.x); x <= max(src.x, dst.x); ++x) {
+        for (int y = min(src.y, dst.y); y <= max(src.y, dst.y); ++y) {
+            for (int z = min(src.z, dst.z); z <= max(src.z, dst.z); ++z) {
+                placed[x][y][z] = true;
+            }
+        }
+    }
+    for (int x = min(src.x, dst.x); x <= max(src.x, dst.x); ++x) {
+        for (int y = min(src.y, dst.y); y <= max(src.y, dst.y); ++y) {
+            for (int z = min(src.z, dst.z); z <= max(src.z, dst.z); ++z) {
+                if (y == 0) {
+                    uf.unite(f({x, y, z}), f(P{0, 0, 0}));
+                } else {
+                    for (int d = 0; d < 6; ++d) {
+                        int nx = x + dx[d], ny = y + dy[d], nz = z + dz[d];
+                        if (placed[nx][ny][nz]) uf.unite(f({x, y, z}), f(P{nx, ny, nz}));
+                    }
+                }
+            }
+        }
+    }
+}
+
 int main() {
     input();
 
@@ -617,15 +644,6 @@ int main() {
     cerr << "end fission" << endl;
     cerr << "fission end" << endl;
 
-    {
-        auto flip = vector<function<bool(bot &)>>(SEED, NOP);
-        flip[0] = [](bot &b) {
-            b.flip();
-            return true;
-        };
-        moveBots(bots, dst, flip, turn);
-    }
-
     int cnt = 0, curY = 1;
     while (cnt < NUM) {
         bool ok = true;
@@ -633,9 +651,9 @@ int main() {
             if (q[i].empty()) {
                 dst[i] = P{bots[i].pos.x, curY + 1, bots[i].pos.z};
             } else {
-//                cerr << "remaining" << endl;
-//                cerr << bots[i].pos << endl;
-//                cerr << q[i].front() << endl;
+                cerr << "remaining" << endl;
+                cerr << bots[i].pos << endl;
+                cerr << q[i].front() << endl;
             }
             ok &= q[i].empty();
         }
@@ -656,8 +674,9 @@ int main() {
                 if (!q[i].empty()) dst[i] = q[i].front();
             }
         }
+
         auto gfill = vector<function<bool(bot &)>>(SEED, NOP);
-        vector<int> busy;
+        set<int> busy;
         for (int i = 0; i < SEED / 2; ++i) {
             int a = i * 2, b = i * 2 + 1;
             if (bots[a].pos.y == curY && bots[a].pos == dst[a] && bots[b].pos == dst[b] && busy.size() + 2 < activeBots) {
@@ -667,29 +686,49 @@ int main() {
                     continue;
                 }
 
-                gfill[a] = [=](bot &botA) {
-                    botA.gfill(na, bots[b].pos + nb - (bots[a].pos + na));
-                    return true;
-                };
-                gfill[b] = [=](bot &botB) {
-                    botB.gfill(nb, bots[a].pos + na - (bots[b].pos + nb));
-                    return true;
-                };
-                busy.push_back(a);
-                busy.push_back(b);
+                P aedge = bots[a].pos + na;
+                P bedge = bots[b].pos + nb;
+                if (abs(bedge - aedge) != 0) {
+                    cerr << "gfill: " << bedge << " to " <<  aedge << endl;
+                    cerr << "gfill: " << bedge - aedge << endl;
+                    gfill[a] = [=](bot &botA) {
+                        botA.gfill(na, bedge - aedge);
+                        return true;
+                    };
+                    gfill[b] = [=](bot &botB) {
+                        botB.gfill(nb, aedge - bedge);
+                        return true;
+                    };
+                    busy.insert(a);
+                    busy.insert(b);
+                } else {
+                    gfill[a] = [=](bot &botA) {
+                        botA.fill(na);
+                        return true;
+                    };
+                    busy.insert(a);
+                }
 
                 q[a].pop();
                 q[b].pop();
-                cnt += abs(bots[b].pos + nb - (bots[a].pos + na)) + 1;
+                cnt += abs(bedge - aedge) + 1;
+                fillVolatile(aedge, bedge, INF);
+                addConectivity(bedge, aedge, uf);
             }
         }
-
-        if (cnt == NUM) {
-            gfill[0] = [](bot &b){
-                b.flip();
-                return true;
-            };
+        for (int i = 0; i < SEED; ++i) {
+            if (busy.count(i)) continue;
+            cerr << "uf: " << uf.size(0) << endl;
+            cerr << "cnt + 1: " << cnt + 1 << endl;
+            if (high && uf.size(0) == cnt + 1 || !high && uf.size(0) < cnt + 1) {
+                gfill[i] = [](bot &b) {
+                    b.flip();
+                    return true;
+                };
+            }
+            break;
         }
+
         moveBots(bots, dst, gfill, turn);
     }
 
