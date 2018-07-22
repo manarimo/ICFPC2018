@@ -1,15 +1,23 @@
 require 'json'
 require 'pp'
 
-if ARGV[0] == '--skip-check'
+if ARGV.index('--skip-check')
   puts "Skip check mode"
   skip_check = true
 end
+
+if ARGV.index('--skip-icfpc')
+  puts "Skip icfpc mode"
+  skip_icfpc = true
+end
+
 
 Dir.chdir(__dir__)
 
 traces = JSON.parse(`curl http://nanachi.kadingel.osak.jp/api/pending_traces`)
 traces['traces'].each do |trace|
+  next if skip_icfpc && trace['author'] == 'icfpc2018'
+
   puts "trace_id #{trace['trace_id']}: #{trace['model_name']} by #{trace['author']}"
   nbt_file = "/tmp/autoscorer-#{Process.pid}-#{trace['trace_id']}.nbt"
   `curl -o #{nbt_file} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/blob`
