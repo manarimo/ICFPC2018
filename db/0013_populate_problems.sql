@@ -20,7 +20,7 @@ WHERE name LIKE 'FA%' ORDER BY name;
 
 -- full disassembly
 INSERT INTO tblproblem (name, type, src_model_id, tgt_model_id, is_lightning)
-SELECT models.name, 'ASSEMBLY', NULL, models.id, 1
+SELECT models.name, 'DISASSEMBLY', NULL, models.id, 0
 FROM
   (SELECT id, name FROM tblmodel m 
    UNION 
@@ -28,4 +28,10 @@ FROM
     JOIN tblmodel m on m.name = mna.base) models -- all models including aliases
 WHERE name LIKE 'FD%' ORDER BY name;
 
--- full reassembly
+-- fill problem_id
+UPDATE tbltrace t,
+  (SELECT t.id AS id, p.id AS problem_id FROM tbltrace t 
+  JOIN tblmodel m ON t.model_id = m.id 
+  JOIN tblproblem p ON m.name = p.name) p
+SET t.problem_id = p.problem_id
+WHERE t.id = p.id;
