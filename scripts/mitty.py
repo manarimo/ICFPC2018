@@ -123,10 +123,10 @@ class Command(object):
                 self.args = decode_nd(code >> 3)
             elif subcode == 1:
                 self.op = Operation.GFILL
-                self.args = decode_nd(code >> 3) + [to_int(read_or_die(f, 1)) - 15 for _ in range(3)]
+                self.args = decode_nd(code >> 3) + [to_int(read_or_die(f, 1)) - 30 for _ in range(3)]
             elif subcode == 0:
                 self.op = Operation.GVOID
-                self.args = decode_nd(code >> 3) + [to_int(read_or_die(f, 1)) - 15 for _ in range(3)]
+                self.args = decode_nd(code >> 3) + [to_int(read_or_die(f, 1)) - 30 for _ in range(3)]
             else:
                 raise ValueError()
 
