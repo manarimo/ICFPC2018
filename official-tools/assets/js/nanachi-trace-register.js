@@ -19,10 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     button.addEventListener('click', async () => {
         await waitUntilSuccess();
         const energy = stdout.innerText.match(/Energy:\s+(\d+)/)[1];
+        const srcModelIn = document.getElementById('srcModelFileIn');
         const modelIn = document.getElementById('tgtModelFileIn');
         const author = document.getElementById('author').value;
         const comment = document.getElementById('comment').value;
-        const m = modelIn.files[0].name.match(/^(.+)_tgt.mdl$/);
+
+        let fileName;
+        if (srcModelIn.files.length > 0) {
+            fileName = srcModelIn.files[0].name;
+        } else {
+            fileName = modelIn.files[0].name;
+        }
+
+        const m = fileName.match(/^(.+)_(src|tgt).mdl$/);
         if (!m) {
             stdout.innerHTML += '<p style="color: red">Upload error: model file name must match /^(.+)_tgt.mdl</p>';
             return;
