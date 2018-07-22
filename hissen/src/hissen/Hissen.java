@@ -125,7 +125,7 @@ public class Hissen {
                     throw HissenParseException.byParamNum(lineNumber, line);
                 }
                 final NearDistance nd6 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
-                final FarDistance fd6 = FarDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                final FarDistance fd6 = FarDistance.parse(array[4], array[5], array[6], lineNumber, line);
                 return new Command.GFill(nd6, fd6);
 
             case "gvoid":
@@ -133,7 +133,7 @@ public class Hissen {
                     throw HissenParseException.byParamNum(lineNumber, line);
                 }
                 final NearDistance nd7 = NearDistance.parse(array[1], array[2], array[3], lineNumber, line);
-                final FarDistance fd7 = FarDistance.parse(array[1], array[2], array[3], lineNumber, line);
+                final FarDistance fd7 = FarDistance.parse(array[4], array[5], array[6], lineNumber, line);
                 return new Command.GVoid(nd7, fd7);
         }
         throw HissenParseException.byUnknownCommand(lineNumber, commandName, line);
