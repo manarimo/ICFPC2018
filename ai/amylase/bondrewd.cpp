@@ -290,7 +290,7 @@ struct State {
         filled = empty_voxels(size);
     }
 
-    vector<Bot> activeBots() {
+    vector<Bot> activeBots() const {
         vector<Bot> actives;
         for (auto &&bot : bots) {
             if (bot.active) {
@@ -310,6 +310,17 @@ struct State {
         }
         return result;
     }
+
+    map<position, int> botIdByPosition() const {
+        map<position, int> p2b;
+        for (int i = 0; i < bots.size(); ++i) {
+            auto bot = bots[i];
+            if (bot.active) {
+                p2b[bot.p] = i;
+            }
+        }
+        return p2b;
+    };
 };
 
 struct MultiCommand {
@@ -323,21 +334,17 @@ State update(const State& state, const MultiCommand& multiCommand) {
     // update without any sanity check.
     State new_state = state;
     vector<command> commands = multiCommand.commands;
-    map<position, int> p2b;
-    for (int i = 0; i < state.bots.size(); ++i) {
-        auto bot = state.bots[i];
-        if (bot.active) {
-            p2b[bot.p] = i;
-        }
-    }
+    map<position, int> p2b = state.botIdByPosition();
+
+    assert (commands.size() == state.activeBots().size());
 
     int bot_id = 0;
-    for (int i = 0; i < commands.size(); ++i, ++bot_id) {
+    for (int command_id = 0; command_id < commands.size(); ++command_id, ++bot_id) {
         while (not state.bots[bot_id].active) {
             bot_id++;
         }
 
-        switch (commands[i].op) {
+        switch (commands[command_id].op) {
             case HALT:
                 break;
             case WAIT:
@@ -346,30 +353,30 @@ State update(const State& state, const MultiCommand& multiCommand) {
                 new_state.hermony = !state.hermony;
                 break;
             case SMOVE:
-                new_state.bots[bot_id].p = state.bots[bot_id].p + commands[i].p1;
+                new_state.bots[bot_id].p = state.bots[bot_id].p + commands[command_id].p1;
                 break;
             case LMOVE:
-                new_state.bots[bot_id].p = state.bots[bot_id].p + commands[i].p1 + commands[i].p2;
+                new_state.bots[bot_id].p = state.bots[bot_id].p + commands[command_id].p1 + commands[command_id].p2;
                 break;
             case FISSION: {
                 int new_bot_id = state.bots[bot_id].seeds[0];
                 auto ptr = state.bots[bot_id].seeds.begin() + 1;
-                vector<int> sub_seeds(ptr, ptr + commands[i].m);
-                vector<int> new_seeds(ptr + commands[i].m, state.bots[bot_id].seeds.end());
+                vector<int> sub_seeds(ptr, ptr + commands[command_id].m);
+                vector<int> new_seeds(ptr + commands[command_id].m, state.bots[bot_id].seeds.end());
                 new_state.bots[bot_id].seeds = new_seeds;
                 new_state.bots[new_bot_id].active = true;
                 new_state.bots[new_bot_id].seeds = sub_seeds;
-                new_state.bots[new_bot_id].p = state.bots[bot_id].p + commands[i].p1;
+                new_state.bots[new_bot_id].p = state.bots[bot_id].p + commands[command_id].p1;
                 break;
             }
             case FILL:
             case VOID: {
-                auto d = state.bots[bot_id].p + commands[i].p1;
-                new_state.filled[d.x][d.y][d.z] = commands[i].op == FILL;
+                auto d = state.bots[bot_id].p + commands[command_id].p1;
+                new_state.filled[d.x][d.y][d.z] = commands[command_id].op == FILL;
                 break;
             }
             case FUSIONP: {
-                auto spos = state.bots[bot_id].p + commands[i].p1;
+                auto spos = state.bots[bot_id].p + commands[command_id].p1;
                 assert (p2b.find(spos) != p2b.end());
                 int sub_id = p2b[spos];
                 new_state.bots[bot_id].seeds.push_back(sub_id);
@@ -385,10 +392,10 @@ State update(const State& state, const MultiCommand& multiCommand) {
                 break;
             case GFILL:
             case GVOID: {
-                auto p1 = state.bots[bot_id].p + commands[i].p1;
-                auto p2 = p1 + commands[i].p2;
+                auto p1 = state.bots[bot_id].p + commands[command_id].p1;
+                auto p2 = p1 + commands[command_id].p2;
                 for (auto &&p : region(p1, p2).internals()) {
-                    new_state.filled[p.x][p.y][p.z] = commands[i].op == GFILL;
+                    new_state.filled[p.x][p.y][p.z] = commands[command_id].op == GFILL;
                 }
                 break;
             }
@@ -607,24 +614,29 @@ struct Step {
 vector<Step> eagerExecution(vector<Step> &steps) {
     vector<Step> new_steps = steps;
     for (int turn = (int)new_steps.size() - 2; turn >= 0; --turn) {
-        auto activeBots = new_steps[turn + 1].state.activeBots();
-        for (int bot_id = 0; bot_id < activeBots.size(); ++bot_id) {
+        for (int bot_id = 0; bot_id < new_steps[turn + 1].state.bots.size(); ++bot_id) {
+            if (!new_steps[turn + 1].state.bots[bot_id].active) {
+                continue;
+            }
             if (!new_steps[turn].state.bots[bot_id].active) {
                 continue;
             }
-            auto prev_commands = new_steps[turn].botCommands();  // TODO: this can be out of this loop.
+            auto commands = new_steps[turn + 1].botCommands();
+            auto prev_commands = new_steps[turn].botCommands();
+            assert (prev_commands.find(bot_id) != prev_commands.end());
             auto prev_command = prev_commands[bot_id];
             if (prev_command.op != WAIT) {
                 continue;
             }
 
-            auto command_id = new_steps[turn].botCommandIds()[bot_id];
+            auto commandIds = new_steps[turn + 1].botCommandIds();
+            auto command_id = commandIds[bot_id];
             auto command = new_steps[turn + 1].multiCommand.commands[command_id];
             if (command.op == HALT || command.op == WAIT || command.op == FLIP) {
                 continue;
             }
-            auto vcs = new_steps[turn].volatileCoordinates();  // TODO: this can be out of this loop.
-            auto& bot = new_steps[turn].state.bots[bot_id];
+            auto vcs = new_steps[turn].volatileCoordinates();
+            auto bot = new_steps[turn].state.bots[bot_id];
             auto new_vcs = bot.volatileCoordinates(command);
             bool ok = true;
             for (auto &&vc : new_vcs) {
@@ -638,27 +650,31 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 continue;
             }
             // This command can be moved!
-            int prevCommandId = new_steps[turn].botCommandIds()[bot_id];
+            auto &oldState = new_steps[turn].state;
+            auto &newState = new_steps[turn + 1].state;
+            auto prevCommandIds = new_steps[turn].botCommandIds();
+            assert (prevCommandIds.find(bot_id) != prevCommandIds.end());
+            int prevCommandId = prevCommandIds[bot_id];
             switch (command.op) {
                 case SMOVE:
                 case LMOVE: {
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
-                    new_steps[turn].state.bots[bot_id] = new_steps[turn + 1].state.bots[bot_id];
+                    new_steps[turn + 1].state.bots[bot_id] = new_steps[turn + 2].state.bots[bot_id];
+                    assert (new_steps[turn].state.activeBots().size() == new_steps[turn].multiCommand.commands.size());
+
                     break;
                 }
-                case FISSION: { // TODO: make this togglable.
+                case FISSION: {
                     int sub_id = new_steps[turn].state.bots[bot_id].seeds.front();
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
-                    new_steps[turn].state.bots[bot_id] = new_steps[turn + 1].state.bots[bot_id];
-                    new_steps[turn].state.bots[sub_id] = new_steps[turn + 1].state.bots[sub_id];
+                    new_steps[turn + 1].state.bots[bot_id] = new_steps[turn + 2].state.bots[bot_id];
+                    new_steps[turn + 1].state.bots[sub_id] = new_steps[turn + 2].state.bots[sub_id];
                     break;
                 }
                 case FILL:
                 case VOID: {
-                    auto &oldState = steps[turn].state;
-                    auto &newState = steps[turn + 1].state;
                     auto dest = bot.p + command.p1;
                     if (not newState.hermony) { // todo: use ground state for this case.
                         break;
@@ -668,11 +684,31 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                     newState.filled[dest.x][dest.y][dest.z] = command.op == FILL;
                     break;
                 }
-                case FUSIONP:break;
-                case FUSIONS:break;
+                case FUSIONP: {
+                    auto p2b = newState.botIdByPosition();
+                    assert(p2b.find(bot.p + command.p1) != p2b.end());
+                    int sub_id = p2b[bot.p + command.p1];
+                    auto subPrevCommand = prev_commands[sub_id];
+                    if (subPrevCommand.op != WAIT) {
+                        continue;
+                    }
+                    int subCommandId = commandIds[sub_id];
+                    int subPrevCommandId = prevCommandIds[sub_id];
+                    auto subCommand = commands[sub_id];
+
+                    new_steps[turn].multiCommand.commands[prevCommandId] = command;
+                    new_steps[turn + 1].multiCommand.commands[command_id] = wait();
+                    new_steps[turn].multiCommand.commands[subPrevCommandId] = subCommand;
+                    new_steps[turn + 1].multiCommand.commands.erase(new_steps[turn + 1].multiCommand.commands.begin() + subCommandId);
+                    new_steps[turn + 1].state.bots[bot_id] = new_steps[turn + 2].state.bots[bot_id];
+                    new_steps[turn + 1].state.bots[sub_id] = new_steps[turn + 2].state.bots[sub_id];
+                    break;
+                }
+                case FUSIONS:
+                    // do nothing. everything is done in FUSIONP
+                    break;
                 case GFILL:
                 case GVOID: {
-                    auto &newState = steps[turn + 1].state;
                     if (not newState.hermony) {
                         break;
                     }
