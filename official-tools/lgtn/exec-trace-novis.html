@@ -46,6 +46,8 @@
 
 <form>
 
+<input type="hidden" id="full" value="true" />
+
 <p>
 Author:<br>
 <input type="text" id="author" size="40" />
@@ -56,8 +58,17 @@ Comment:<br>
 </p>
 
 <p>
-<label for="tgtModelFileIn">Target Model:</label><br />
-<input type="file" accept=".mdl" id="tgtModelFileIn" />
+<label for="srcModelFileIn">Source Model:</label>
+<input type="checkbox" id="srcModelEmpty" />
+<label for="srcModelEmpty">empty</label><br />
+<input type="file" accept=".mdl" id="srcModelFileIn" />
+</p>
+
+<p>
+<label for="tgtModelFileIn">Target Model:</label>
+<input type="checkbox" id="tgtModelEmpty" />
+<label for="tgtModelEmpty">empty</label><br />
+<input accept=".mdl" type="file" id="tgtModelFileIn" />
 </p>
 
 <p>
@@ -99,9 +110,12 @@ var vis = null;
 <script src="../assets/js/load-file-utils.js"></script>
 
 <script>
+  var srcModelBData = null;
 var tgtModelBData = null;
 var traceBData = null;
 (function () {
+  var srcModelEmpty = document.getElementById('srcModelEmpty');
+  var tgtModelEmpty = document.getElementById('tgtModelEmpty');
   var execTrace = document.getElementById('execTrace');
   function onStart() {
     document.getElementById('stdout').innerHTML = "";
@@ -109,16 +123,47 @@ var traceBData = null;
     execTrace.disabled = true;
   }
   function onSuccess() {
-    if (tgtModelBData && traceBData) {
+    if ((srcModelBData || srcModelEmpty.checked) &&
+        (tgtModelBData || tgtModelEmpty.checked) &&
+        !(srcModelEmpty.checked && tgtModelEmpty.checked) &&
+        traceBData) {
       execTrace.disabled = false;
     }
   }
+  mkLoadBDataFromFile
+  ('srcModel',
+   function () { srcModelBData = null; onStart(); },
+   function () { },
+   onSuccess,
+   function(data) { srcModelBData = data; });
+  document.getElementById('srcModelEmpty').addEventListener('change',
+    function (e) { onStart();
+                   if (e.target.checked) {
+                     srcModelBData = null;
+                     document.getElementById('srcModelFileIn').disabled = true;
+                     document.getElementById('srcModelFileIn').value = "";
+                   } else {
+                     document.getElementById('srcModelFileIn').disabled = false;
+                   }
+                   onSuccess();
+    }, false);
   mkLoadBDataFromFile
   ('tgtModel',
    function () { tgtModelBData = null; onStart(); },
    function () { },
    onSuccess,
    function(data) { tgtModelBData = data; });
+  document.getElementById('tgtModelEmpty').addEventListener('change',
+    function (e) { onStart();
+                   if (e.target.checked) {
+                     tgtModelBData = null;
+                     document.getElementById('tgtModelFileIn').disabled = true;
+                     document.getElementById('tgtModelFileIn').value = "";
+                   } else {
+                     document.getElementById('tgtModelFileIn').disabled = false;
+                   }
+                   onSuccess();
+    }, false);
   mkLoadBDataFromFile
   ('trace',
    function () { traceBData = null; onStart(); },
