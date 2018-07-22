@@ -1,5 +1,8 @@
 #!/usr/bin/env ruby
 
+require 'json'
+require 'pp'
+
 problem_id, author, comment, run_script, temp_dir = ARGV
 
 work_dir = File.expand_path(__dir__ + '/..')
@@ -29,15 +32,16 @@ Dir.chdir("#{work_dir}/hissen/src")
 `javac Main.java`
 `java Main "#{asm_path}" "#{nbt_path}"`
 
-puts `curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F nbt-blob=@"#{nbt_path}" http://nanachi.kadingel.osak.jp/traces/register`
+json = JSON.parse(`curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F nbt-blob=@"#{nbt_path}" http://nanachi.kadingel.osak.jp/traces/register`)
+pp json
 
 Dir.chdir("#{work_dir}/autoscorer")
 `make`
 energy = `./autoscorer #{scorer_option} #{input_models.join(' ')} "#{nbt_path}"`.to_i
 if $?.success?
   puts "energy=#{energy}"
-  puts `curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F nbt-blob=@"#{nbt_path}" -F energy=#{energy} "http://nanachi.kadingel.osak.jp/traces/register"`
+  puts `curl -X POST -F energy=#{energy} http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`
 else
   puts "Autoscorer failed"
-  puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
+  puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{json['trace_id']}/update-autoscorer`
 end
