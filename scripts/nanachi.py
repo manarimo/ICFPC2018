@@ -277,7 +277,7 @@ def update_ranking():
         "INSERT INTO tblofficial_ranking (problem_id, name, energy) VALUES (%s, %s, %s) "
         "ON DUPLICATE KEY UPDATE "
         "name=IF(energy < VALUES(energy), VALUES(name), name), "
-        "energy=MAX(energy, VALUES(energy))",
+        "energy=GREATEST(energy, VALUES(energy))",
     values)
     cursor.close()
 
