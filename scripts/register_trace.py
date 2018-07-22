@@ -15,6 +15,7 @@ def register(name: str, blob: bytes, energy: int, author: str, comment: str, s3_
     cursor.execute("SELECT id FROM tblproblem WHERE name=%s", (name,))
     problem_id = cursor.fetchone()["id"]
     negenergy = -energy if energy is not None else None
+    print(s3_url)
     if blob:
         cursor.execute("INSERT INTO tbltrace (problem_id, body, score, sha1, s3url) VALUES (%s, %s, %s, %s, %s) ON DUPLICATE KEY UPDATE score=%s", (problem_id, blob, negenergy, digest, s3_url, negenergy))
     else:
