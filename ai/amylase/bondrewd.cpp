@@ -12,6 +12,7 @@
 #include <map>
 #include <algorithm>
 #include <set>
+#include <cassert>
 
 using namespace std;
 
