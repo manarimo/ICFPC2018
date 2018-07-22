@@ -356,10 +356,10 @@ void input() {
 }
 
 vector<int> calcBlockSum(int y, int xs) {
-    cerr << "calcBlockSum" << endl;
     vector<int> block(R), sum(R + 1);
     for (int x = 0; x < R; ++x) {
         for (int z = 0; z < R; ++z) {
+//            if (!field[x][y][z]) continue;
             int r = z;
             while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
             ++block[x];
@@ -367,6 +367,7 @@ vector<int> calcBlockSum(int y, int xs) {
         }
         sum[x + 1] = sum[x] + block[x];
     }
+
     vector<vector<int>> dp(R + 1, vector<int>(xs + 1, INF)), prv(R + 1, vector<int>(xs + 1, 0));
     dp[0][0] = 0;
 
@@ -676,7 +677,6 @@ int main() {
 
         auto gfill = vector<function<bool(bot &)>>(SEED, NOP);
         set<int> busy;
-        bool flipped = false;
         for (int i = 0; i < SEED / 2; ++i) {
             int a = i * 2, b = i * 2 + 1;
             if (bots[a].pos.y == curY && bots[a].pos == dst[a] && bots[b].pos == dst[b] && busy.size() + 2 < activeBots) {
@@ -721,7 +721,6 @@ int main() {
             cerr << "uf: " << uf.size(0) << endl;
             cerr << "cnt + 1: " << cnt + 1 << endl;
             if (high && uf.size(0) == cnt + 1 || !high && uf.size(0) < cnt + 1) {
-                flipped = true;
                 gfill[i] = [](bot &b) {
                     b.flip();
                     return true;
