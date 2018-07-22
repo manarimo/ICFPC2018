@@ -23,7 +23,7 @@ public class FarDistance {
             final int dx = Integer.parseInt(sdx);
             final int dy = Integer.parseInt(sdy);
             final int dz = Integer.parseInt(sdz);
-            if (IntStream.of(dx, dy, dz).map(Math::abs).max().orElse(99) <= 30) {
+            if (IntStream.of(dx, dy, dz).map(Math::abs).max().orElse(99) > 30) {
                 throw HissenParseException.byConstraint(lineNumber, line, "FDはチェビシェフ距離30以下。");
             }
             return new FarDistance(dx + 30, dy + 30, dz + 30);
