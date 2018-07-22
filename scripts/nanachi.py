@@ -46,19 +46,22 @@ def pending_traces():
 def best_traces():
     traces = {}
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy, energy_autoscorer, author, comment "
-                   "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
-                   "JOIN tblmodel ON tblmodel.id = tbltrace.model_id")
+    lightning = request.args.get('lightning') == 'true'
     autoscorer = request.args.get('autoscorer') == 'true'
+    cursor.execute("SELECT name AS problem_name, trace_id, energy, energy_autoscorer, author, comment "
+                   "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
+                   "JOIN tblproblem p ON p.id = tbltrace.problem_id "
+                   "WHERE p.is_lightning = %s",
+                   (lightning,))
     key = "energy_autoscorer" if autoscorer else "energy"
     def energy_order(energy):
         return energy is None, energy
     for trace in cursor.fetchall():
-        model_name = trace["model_name"]
-        if model_name not in traces:
-            traces[model_name] = trace
-        elif energy_order(trace[key]) < energy_order(traces[model_name][key]):
-            traces[model_name] = trace
+        problem_name = trace["problem_name"]
+        if problem_name not in traces:
+            traces[problem_name] = trace
+        elif energy_order(trace[key]) < energy_order(traces[problem_name][key]):
+            traces[problem_name] = trace
     cursor.close()
     connection.commit()
 
@@ -68,7 +71,7 @@ def best_traces():
         for trace in traces.values():
             cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace["trace_id"], ))
             blob = cursor.fetchone()[b"body"]
-            blobs[trace["model_name"]] = blob
+            blobs[trace["problem_name"]] = blob
         cursor.close()
         connection.commit()
         with NamedTemporaryFile() as zf:
@@ -78,7 +81,7 @@ def best_traces():
             api.do_submit(public_url, digest)
             return render_template("submit_result.html", zipfile_url=public_url)
     else:
-        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["model_name"]), autoscorer=autoscorer)
+        return render_template("best_traces.html", traces=sorted(traces.values(), key=lambda trace: trace["problem_name"]), autoscorer=autoscorer)
 
 
 @app.route("/traces/register", methods=["POST"])
