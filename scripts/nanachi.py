@@ -210,6 +210,22 @@ def model_list():
 
     return render_template("model_list.html", models=rows)
 
+@app.route("/problem_list")
+def problem_list():
+    lightning = request.args.get('lightning') == 'true'
+    cursor = connection.cursor(dictionary=True)
+    cursor.execute(
+        "SELECT p.id, p.name, p.type, src.name AS src_name, tgt.name AS tgt_name FROM tblproblem p "
+        "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
+        "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
+        "WHERE p.is_lightning=%s",
+        (lightning,))
+    rows = cursor.fetchall()
+    cursor.close()
+    connection.commit()
+
+    return render_template("problem_list.html", problems=rows)
+
 
 @app.route("/")
 def hello():
