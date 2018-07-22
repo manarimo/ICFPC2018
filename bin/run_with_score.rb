@@ -37,6 +37,7 @@ if File.exists?(File.expand_path('~/venv'))
   sha1 = `sha1sum #{nbt_path}`.split[0]
   json = JSON.parse(`curl -X POST -F author="#{author}" -F name=#{problem_id} -F comment="#{comment}" -F s3url="#{url}" -F sha1sum=#{sha1} http://nanachi.kadingel.osak.jp/traces/register`)
   done_upload = true
+  pp json
 else
   puts "Skip uploading file because this is not server environment"
   done_upload = false
