@@ -280,6 +280,9 @@ def update_ranking():
         "energy=GREATEST(energy, VALUES(energy))",
     values)
     cursor.close()
+    connection.commit()
+
+    return ('', 200)
 
 @app.route("/")
 def hello():
