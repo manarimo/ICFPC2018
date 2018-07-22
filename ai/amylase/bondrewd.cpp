@@ -23,6 +23,47 @@ int adj_dy[] = {0, 0, 1,-1, 0, 0};
 int adj_dz[] = {0, 0, 0, 0, 1,-1};
 
 
+class UnionFind {
+    vector<int> parent;
+    vector<int> rank;
+
+public:
+    UnionFind(int n){
+        parent = vector<int>(n, -1); // parent[i] = -1 -> i is root.
+        rank = vector<int>(n, 0);
+    }
+
+    int find(int n){
+        vector<int> path;
+        while(parent[n]!=-1){
+            path.push_back(n);
+            n = parent[n];
+        }
+        for(vector<int>::iterator it = path.begin(); it != path.end(); it++){
+            parent[*it] = n;
+            rank[*it] = 0;
+        }
+        return n;
+    }
+
+    void unify(int x, int y){
+        int rx = find(x), ry = find(y);
+        if(rx == ry) return;
+
+        if(rank[rx] < rank[ry]){
+            parent[rx] = ry;
+        } else {
+            parent[ry] = rx;
+            if(rank[rx] == rank[ry]) rank[rx]++;
+        }
+    }
+
+    bool same(int x, int y){
+        return find(x) == find(y);
+    }
+};
+
+
 struct position {
     int x;
     int y;
@@ -616,9 +657,50 @@ struct Step {
 
 //============= OPTIMIZER STAGES ====================
 
+struct Instruction {
+    int id;
+    int botId;
+    command com;
 
-vector<Step> dependencyOptimization(vector<Step> &step) {
+    Instruction(int i, int b, command c): id(i), botId(b), com(c) {}
+};
 
+struct InstructionNode {
+    int id;
+    vector<Instruction> instructions;
+    vector<InstructionNode*> references;
+    int referenceCount;
+};
+
+vector<Step> dependencyOptimization(vector<Step> &steps) {
+    // step 1: generate dependency graph.
+    // step 1-1: assign id to instructions
+    vector<Instruction> instructions;
+    vector<pair<int, int>> synchronizationConstraints;
+    vector<pair<int, int>> dependencyConstraints;
+    for (auto &&step : steps) {
+        for (auto &&c : step.botCommands()) {
+            int botId = c.first;
+            command com = c.second;
+            if (com.op == WAIT) {
+                continue;
+            }
+            auto instructionId = (int) instructions.size();
+            instructions.emplace_back(instructionId, botId, com);
+        }
+    }
+
+    // step 1-2: analyze dependency/synchronization
+    // todo
+
+    // step 1-3: generate graph nodes using sync constraints
+    // todo
+
+    // step 1-4: add edges on graph.
+    // todo
+
+    // step 2: greedily assign instructions if possible.
+    State state = steps.front().state;
 }
 
 vector<Step> eagerExecution(vector<Step> &steps) {
