@@ -15,6 +15,12 @@
 using namespace std;
 
 
+// 6
+int adj_dx[] = {1,-1, 0, 0, 0, 0};
+int adj_dy[] = {0, 0, 1,-1, 0, 0};
+int adj_dz[] = {0, 0, 0, 0, 1,-1};
+
+
 struct position {
     int x;
     int y;
@@ -292,6 +298,17 @@ struct State {
             }
         }
         return actives;
+    }
+
+    vector<position> adj_pos(const position &p) const {
+        vector<position> result;
+        for (int i = 0; i < 6; ++i) {
+            auto pp = p + position(adj_dx[i], adj_dy[i], adj_dz[i]);
+            if (0 <= pp.x && pp.x < filled.size() && 0 <= pp.y && pp.y < filled[0].size() && 0 <= pp.z && pp.z < filled[0][0].size()) {
+                result.emplace_back(pp);
+            }
+        }
+        return result;
     }
 };
 
@@ -621,18 +638,36 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 continue;
             }
             // This command can be moved!
+            int prevCommandId = new_steps[turn].botCommandIds()[bot_id];
             switch (command.op) {
                 case SMOVE:
                 case LMOVE: {
-                    int prevCommandId = new_steps[turn].botCommandIds()[bot_id];
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
                     new_steps[turn].state.bots[bot_id] = new_steps[turn + 1].state.bots[bot_id];
                     break;
                 }
-                case FISSION:break;
-                case FILL:break;
-                case VOID:break;
+                case FISSION: { // TODO: make this togglable.
+                    int sub_id = new_steps[turn].state.bots[bot_id].seeds.front();
+                    new_steps[turn].multiCommand.commands[prevCommandId] = command;
+                    new_steps[turn + 1].multiCommand.commands[command_id] = wait();
+                    new_steps[turn].state.bots[bot_id] = new_steps[turn + 1].state.bots[bot_id];
+                    new_steps[turn].state.bots[sub_id] = new_steps[turn + 1].state.bots[sub_id];
+                    break;
+                }
+                case FILL:
+                case VOID: {
+                    auto &oldState = steps[turn].state;
+                    auto &newState = steps[turn + 1].state;
+                    auto dest = bot.p + command.p1;
+                    if (not newState.hermony) { // todo: use ground state for this case.
+                        break;
+                    }
+                    new_steps[turn].multiCommand.commands[prevCommandId] = command;
+                    new_steps[turn + 1].multiCommand.commands[command_id] = wait();
+                    newState.filled[dest.x][dest.y][dest.z] = command.op == FILL;
+                    break;
+                }
                 case FUSIONP:break;
                 case FUSIONS:break;
                 case GFILL:break;
@@ -702,12 +737,13 @@ int main(int argc, char** argv) {
     cerr << "calculated state history" << endl;
 
     int current_steps;
+    int least_loops = 10;
     do {
         current_steps = steps.size();
         steps = eagerExecution(steps);
         steps = skipAllWaits(steps);
         cerr << "optimization iteration done. current #turns " << steps.size() << endl;
-    } while (steps.size() < current_steps);
+    } while (steps.size() < current_steps || least_loops--);
     cerr << "optimization completed. #turns = " << steps.size() << endl;
 
     vector<MultiCommand> newTurns;
