@@ -647,6 +647,9 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             if (command.op == HALT || command.op == WAIT || command.op == FLIP) {
                 continue;
             }
+            if (command.op == GFILL || command.op == GVOID) {
+                continue; // temporal fix
+            }
             auto vcs = new_steps[turn].volatileCoordinates();
             auto bot = new_steps[turn].state.bots[bot_id];
             auto new_vcs = bot.volatileCoordinates(command);
