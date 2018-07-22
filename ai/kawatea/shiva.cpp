@@ -1150,7 +1150,7 @@ int main() {
     region box = bounding_box();
     vector <command> best_traces = calc(box);
     
-    if (box.p2.x <= 31 && box.p2.z <= 31) {
+    if (box.p2.x <= 31 && box.p2.y <= 31 && box.p2.z <= 31) {
         for (int x = 1; x <= box.p1.x; x++) {
             for (int z = 1; z <= box.p1.z; z++) {
                 region nbox = box;
