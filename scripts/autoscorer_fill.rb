@@ -1,7 +1,7 @@
 require 'json'
 require 'pp'
 
-if ARGV[1] == '--skip-check'
+if ARGV[0] == '--skip-check'
   puts "Skip check mode"
   skip_check = true
 end
