@@ -8,6 +8,7 @@
 #include <string>
 #include <fstream>
 #include <algorithm>
+#include <cstring>
 
 using namespace std;
 
@@ -206,6 +207,16 @@ struct Model {
             }
         }
     }
+
+    Model(int size): size(size) {
+        for (int i = 0; i < 250; ++i) {
+            for (int j = 0; j < 250; ++j) {
+                for (int k = 0; k < 250; ++k) {
+                    field[i][j][k] = false;
+                }
+            }
+        }
+    }
 };
 
 struct State {
@@ -217,13 +228,25 @@ struct State {
     DisjointSet ds;
     int ground;
     int filled;
-    Model* model;
+    Model* sourceModel;
+    Model* targetModel;
 
-    State(Model* model) : energy(0), harmonics(LOW), r(model->size), ds(r * r * r + 1), ground(r * r * r), filled(0), model(model) {
+    State(Model* sourceModel, Model* targetModel)
+        : energy(0), harmonics(LOW), r(sourceModel->size), ds(r * r * r + 1), ground(r * r * r), filled(0),
+          sourceModel(sourceModel), targetModel(targetModel) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
                     field[i][j][k] = false;
+                }
+            }
+        }
+        for (int i = 0; i < r; ++i) {
+            for (int j = 0; j < r; ++j) {
+                for (int k = 0; k < r; ++k) {
+                    if (sourceModel->field[i][j][k]) {
+                        fill(Coord{i, j, k});
+                    }
                 }
             }
         }
@@ -351,7 +374,7 @@ struct State {
         for (int i = 0; i < r; i++) {
             for (int j = 0; j < r; j++) {
                 for (int k = 0; k < r; k++) {
-                    assert(field[i][j][k] == model->field[i][j][k]);
+                    assert(field[i][j][k] == targetModel->field[i][j][k]);
                 }
             }
         }
@@ -876,8 +899,8 @@ void runStep(State &state, deque<Command*> &commands) {
     //cout << state.energy << endl;
 }
 
-void run(Model* model, deque<Command *> &commands) {
-    State *state = new State(model);
+void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands) {
+    State *state = new State(sourceModel, targetModel);
     while (state->botCount() > 0) {
         runStep(*state, commands);
     }
@@ -903,6 +926,7 @@ Coord decodeShortDistance(int a, int i) {
    } else if (a == 0b11) {
        return Coord{0, 0, i - 5};
    }
+   assert(false);
 }
 
 Coord decodeLongDistance(int a, int i) {
@@ -920,7 +944,7 @@ Coord decodeFarDistance(int x, int y, int z) {
     return Coord{x - 30, y - 30, z - 30};
 }
 
-deque<Command*> compile(const string filename) {
+deque<Command*> compile(const char *filename) {
     ifstream in(filename);
     deque<Command*> commands;
     while(!in.eof()) {
@@ -969,22 +993,75 @@ deque<Command*> compile(const string filename) {
     return commands;
 }
 
+enum RunMode {
+    ASSEMBLY,
+    DISASSEMBLY,
+    REASSEMBLY,
+};
+
+struct Options {
+    RunMode runMode;
+
+    int argc;
+    char **args;
+
+    Options() : runMode(ASSEMBLY), argc(0), args(nullptr) {}
+};
+
+Options getOptions(int argc, char **argv) {
+    Options options;
+
+    for (int i = 1; i < argc; ++i) {
+        if (strcmp(argv[i], "--disassembly") == 0) {
+            options.runMode = DISASSEMBLY;
+        } else if (strcmp(argv[i], "--reassembly") == 0) {
+            options.runMode = REASSEMBLY;
+        } else {
+            options.argc = argc - i;
+            options.args = argv + i;
+            break;
+        }
+    }
+
+    return options;
+}
+
 int main(int argc, char **argv) {
-    if (argc < 3) {
-        cerr << "Usage: ./autoscorer [mdl file] [nbt file]" << endl;
+    const Options options = getOptions(argc, argv);
+
+    if (options.argc < 2) {
+        cerr << "Usage: ./autoscorer [--disassembly] [--reassembly] MDL_FILE(s) NBT_FILE" << endl;
         return 1;
     }
     cerr << "Reading Model..." << endl;
-    ifstream in(argv[1]);
-    Model* model = new Model(in);
+    Model* sourceModel;
+    Model* targetModel;
+    char **args = options.args;
+    if (options.runMode == ASSEMBLY) {
+        ifstream in(*args++);
+        targetModel = new Model(in);
+        sourceModel = new Model(targetModel->size);
+    } else if (options.runMode == DISASSEMBLY) {
+        ifstream in(*args++);
+        sourceModel = new Model(in);
+        targetModel = new Model(sourceModel->size);
+    } else if (options.runMode == REASSEMBLY) {
+        ifstream in1(*args++);
+        sourceModel = new Model(in1);
+        ifstream in2(*args++);
+        targetModel = new Model(in2);
+    }
+    assert(sourceModel);
+    assert(targetModel);
+
     cerr << "Compiling..." << endl;
-    deque <Command*> commands = compile(string(argv[2]));
+    deque <Command*> commands = compile(*args++);
     /*
     for (auto command : commands) {
         cout << (*command) << endl;
     }
      */
     cerr << "Running..." << endl;
-    run(model, commands);
+    run(sourceModel, targetModel, commands);
     return 0;
 }
