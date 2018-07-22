@@ -258,10 +258,11 @@ struct State {
     Model* sourceModel;
     Model* targetModel;
     bool needReground;
+    bool skipSanityCheck;
 
-    State(Model* sourceModel, Model* targetModel)
+    State(Model* sourceModel, Model* targetModel, bool skipSanityCheck)
         : energy(0), harmonics(LOW), r(sourceModel->size), ds(r * r * r + 1), ground(r * r * r), filled(0),
-          sourceModel(sourceModel), targetModel(targetModel), needReground(false) {
+          sourceModel(sourceModel), targetModel(targetModel), needReground(false), skipSanityCheck(false) {
         for (int i = 0; i < 250; ++i) {
             for (int j = 0; j < 250; ++j) {
                 for (int k = 0; k < 250; ++k) {
@@ -376,7 +377,7 @@ struct State {
         } else {
             field[p.x][p.y][p.z] = false;
             --filled;
-            if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
+            if (!skipSanityCheck && (!ds.remove(hashCoord(p)) || !stillConnected(p))) {
                 needReground = true;
             }
         }
@@ -899,7 +900,7 @@ struct CommandGroup {
     }
 };
 
-void runStep(State &state, deque<Command*> &commands) {
+void runStep(State &state, deque<Command*> &commands, bool skipSanityCheck = false) {
     vector <Region> volatileRegions;
     map<int, Command*> commandMap;
     unordered_map<Region, CommandGroup*, RegionHasher> gfillGroups;
@@ -917,7 +918,9 @@ void runStep(State &state, deque<Command*> &commands) {
         const NanoBot &bot = botEntry.second;
         const GFillCommand *gfillCommand = dynamic_cast<GFillCommand*>(command);
 
-        command->checkPrecondition(state, bot.id);
+        if (!skipSanityCheck) {
+            command->checkPrecondition(state, bot.id);
+        }
 
         const vector<Region> newRegions = command->volatileRegions(state, bot.id);
         // Volatile region of GFill command is checked later
@@ -1001,6 +1004,10 @@ void runStep(State &state, deque<Command*> &commands) {
     }
     commands.erase(commands.begin(), it);
 
+    if (skipSanityCheck) {
+        return;
+    }
+
     // Recalculate ground state because it's dirty now due to Void commands
     if (state.needReground) {
         //cout << "need" << endl;
@@ -1027,13 +1034,15 @@ void runStep(State &state, deque<Command*> &commands) {
     //cout << state.filled << endl;
 }
 
-void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands) {
-    State *state = new State(sourceModel, targetModel);
+void run(Model* sourceModel, Model* targetModel, deque<Command *> &commands, bool skipSanityCheck = false) {
+    State *state = new State(sourceModel, targetModel, skipSanityCheck);
     while (state->botCount() > 0) {
-        runStep(*state, commands);
+        runStep(*state, commands, skipSanityCheck);
     }
-    assert(commands.empty());
-    state->checkFinalState();
+    if (!skipSanityCheck) {
+        assert(commands.empty());
+        state->checkFinalState();
+    }
     
     cout << state->energy << endl;
 }
@@ -1137,11 +1146,12 @@ enum RunMode {
 
 struct Options {
     RunMode runMode;
+    bool skipSanityCheck;
 
     int argc;
     char **args;
 
-    Options() : runMode(ASSEMBLY), argc(0), args(nullptr) {}
+    Options() : runMode(ASSEMBLY), argc(0), args(nullptr), skipSanityCheck(false) {}
 };
 
 Options getOptions(int argc, char **argv) {
@@ -1152,6 +1162,8 @@ Options getOptions(int argc, char **argv) {
             options.runMode = DISASSEMBLY;
         } else if (strcmp(argv[i], "--reassembly") == 0) {
             options.runMode = REASSEMBLY;
+        } else if (strcmp(argv[i], "--aperture-science-dangerously-skip-sanity-check") == 0) {
+            options.skipSanityCheck = true;
         } else {
             options.argc = argc - i;
             options.args = argv + i;
@@ -1198,6 +1210,6 @@ int main(int argc, char **argv) {
     }
      */
     cerr << "Running..." << endl;
-    run(sourceModel, targetModel, commands);
+    run(sourceModel, targetModel, commands, options.skipSanityCheck);
     return 0;
 }

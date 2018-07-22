@@ -1,6 +1,11 @@
 require 'json'
 require 'pp'
 
+if ARGV[1] == '--skip-check'
+  puts "Skip check mode"
+  skip_check = true
+end
+
 Dir.chdir(__dir__)
 
 traces = JSON.parse(`curl http://nanachi.kadingel.osak.jp/api/pending_traces`)
@@ -20,10 +25,10 @@ traces['traces'].each do |trace|
 
   if src_mdl_file && tgt_mdl_file
     puts "This is reassembly problem"
-    score = `../autoscorer/autoscorer --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}`
+    score = `../autoscorer/autoscorer #{skip_check ? '--aperture-science-dangerously-skip-sanity-check' : ''} --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}`
   elsif src_mdl_file
     puts "This is disassembly problem"
-    score = `../autoscorer/autoscorer --disassembly #{src_mdl_file} #{nbt_file}`
+    score = `../autoscorer/autoscorer #{skip_check ? '--aperture-science-dangerously-skip-sanity-check' : ''} --disassembly #{src_mdl_file} #{nbt_file}`
   else
     puts "This is assembly problem"
     score = `../autoscorer/autoscorer #{tgt_mdl_file} #{nbt_file}`
