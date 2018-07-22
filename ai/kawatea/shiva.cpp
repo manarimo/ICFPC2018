@@ -402,7 +402,7 @@ vector <command> dig(position p) {
     
     while (true) {
         bool found = false;
-        for (int y = p.y; y > 1; y--) {
+        for (int y = p.y; y > 0; y--) {
             if (matrix[p.x][y - 1][p.z]) {
                 found = true;
                 vector <command> moves = get_moves(position(0, y - p.y, 0));
@@ -627,7 +627,7 @@ vector <command> calc_large(const region& box, const position& p) {
         traces = get_moves(box.p1 + position(-1, box.p2.y + 1, -1));
     } else {
         int bots = 1;
-        position origin = box.p1 + position(30, box.p2.y + 1, 29);
+        position origin = box.p1 + position(30, box.p2.y + 1, 30);
         
         traces = get_moves(origin);
         
@@ -786,7 +786,7 @@ vector <command> calc_large(const region& box, const position& p) {
         }
         
         {
-            vector <command> moves = get_moves(position(-31, 0, -30));
+            vector <command> moves = get_moves(position(-31, 0, -31));
             traces.insert(traces.end(), moves.begin(), moves.end());
         }
     }
@@ -803,17 +803,18 @@ vector <command> calc_large(const region& box, const position& p) {
         traces.push_back(Fission(0, 0, 1, 1));
         traces.push_back(Fission(0, 0, 1, 1));
         
-        vector <command> moves_z = get_moves(position(0, 0, min(29, p.z)));
-        for (int i = 0; i < moves_z.size(); i++) {
+        vector <command> moves_z1 = get_moves(position(0, 0, min(29, p.z)));
+        vector <command> moves_z2 = get_moves(position(0, 0, min(30, p.z + 1)));
+        if (moves_z1.size() < moves_z2.size()) moves_z1.push_back(Wait());
+        for (int i = 0; i < moves_z1.size(); i++) {
             if (i == 0) {
-                traces.push_back(SMove(0, -1, 0));
                 traces.push_back(SMove(0, -1, 0));
             } else {
                 traces.push_back(Wait());
-                traces.push_back(Wait());
             }
-            traces.push_back(moves_z[i]);
-            traces.push_back(moves_z[i]);
+            traces.push_back(Wait());
+            traces.push_back(moves_z2[i]);
+            traces.push_back(moves_z1[i]);
         }
         
         traces.push_back(Fission(0, -1, 0, 0));
@@ -821,19 +822,23 @@ vector <command> calc_large(const region& box, const position& p) {
         traces.push_back(Wait());
         traces.push_back(Fission(0, -1, 0, 0));
         
-        vector <command> moves_y = get_moves(position(0, -min(29, p.y - 1), 0));
-        for (int i = 0; i < moves_y.size(); i++) {
+        vector <command> moves_y1 = get_moves(position(0, -min(30, p.y), 0));
+        vector <command> moves_y2 = get_moves(position(0, -min(29, p.y - 1), 0));
+        if (moves_y2.size() < moves_y1.size()) moves_y2.push_back(Wait());
+        for (int i = 0; i < moves_y1.size(); i++) {
+            if (i + 1 == moves_y1.size()) {
+                traces.push_back(Fission(0, 1, 0, 0));
+            } else {
+                traces.push_back(Wait());
+            }
             traces.push_back(Wait());
             traces.push_back(Wait());
+            traces.push_back(moves_y1[i]);
             traces.push_back(Wait());
-            traces.push_back(moves_y[i]);
-            traces.push_back(Wait());
-            traces.push_back(moves_y[i]);
-            traces.push_back(moves_y[i]);
+            traces.push_back(moves_y1[i]);
+            traces.push_back(moves_y2[i]);
         }
     }
-    
-    traces[traces.size() - 7] = Fission(0, 1, 0, 0);
     
     {
         int z = 0;
@@ -853,10 +858,14 @@ vector <command> calc_large(const region& box, const position& p) {
                 traces.push_back(Wait());
                 traces.push_back(Wait());
                 
-                vector <command> moves_fission = get_moves(position(0, -min(29, p.y - 1), 0));
+                vector <command> moves_fission = get_moves(position(0, -min(30, p.y), 0));
                 for (int i = 0; i < moves_fission.size(); i++) {
                     for (int j = 0; j < 9; j++) {
-                        if (j == 3) {
+                        if (i == 0 && j == 1) {
+                            traces.push_back(SMove(0, -1, 0));
+                        } else if (i == 0 && j == 2) {
+                            traces.push_back(LMove(-1, 0, 0, 0, 0, -1));
+                        } else if (j == 3) {
                             traces.push_back(moves_fission[i]);
                         } else {
                             traces.push_back(Wait());
@@ -869,11 +878,11 @@ vector <command> calc_large(const region& box, const position& p) {
                     
                     traces.push_back(GVoid(1, 0, 1, dx, -dy, dz));
                     traces.push_back(GVoid(-1, 0, 1, -dx, -dy, dz));
-                    traces.push_back(GVoid(-1, -1, 0, -dx, -dy, -dz));
-                    traces.push_back(GVoid(-1, -1, 0, -dx, dy, -dz));
+                    traces.push_back(GVoid(0, -1, 0, -dx, -dy, -dz));
+                    traces.push_back(GVoid(-1, 0, -1, -dx, dy, -dz));
                     traces.push_back(GVoid(-1, 0, 1, -dx, dy, dz));
                     traces.push_back(GVoid(1, -1, 0, dx, -dy, -dz));
-                    traces.push_back(GVoid(1, -1, 0, dx, dy, -dz));
+                    traces.push_back(GVoid(1, 0, 0, dx, dy, -dz));
                     traces.push_back(GVoid(1, 0, 1, dx, dy, dz));
                     
                     for (int i = 0; i <= dx; i++) {
@@ -900,7 +909,8 @@ vector <command> calc_large(const region& box, const position& p) {
                     
                     vector <command> moves_y = get_moves(position(0, -dy, 0));
                     for (int i = 0; i < moves_y.size(); i++) {
-                        for (int j = 0; j < 9; j++) traces.push_back(moves_y[i]);
+                        for (int j = 0; j < 8; j++) traces.push_back(moves_y[i]);
+                        traces.push_back(Wait());
                     }
                 }
                 
@@ -910,10 +920,14 @@ vector <command> calc_large(const region& box, const position& p) {
                     traces.push_back(Wait());
                 }
                 
-                vector <command> moves_fusion = get_moves(position(0, min(29, p.y - 1), 0));
+                vector <command> moves_fusion = get_moves(position(0, min(30, p.y), 0));
                 for (int i = 0; i < moves_fusion.size(); i++) {
                     for (int j = 0; j < 9; j++) {
-                        if (j == 3) {
+                        if (i + 1 == moves_fusion.size() && j == 1) {
+                            traces.push_back(SMove(0, 1, 0));
+                        } else if (i + 1 == moves_fusion.size() && j == 2) {
+                            traces.push_back(LMove(1, 0, 0, 0, 0, 1));
+                        } else if (j == 3) {
                             traces.push_back(moves_fusion[i]);
                         } else {
                             traces.push_back(Wait());
@@ -970,8 +984,10 @@ vector <command> calc_large(const region& box, const position& p) {
     
     {
         
-        vector <command> moves_y = get_moves(position(0, min(29, p.y - 1), 0));
-        for (int i = 0; i < moves_y.size(); i++) {
+        vector <command> moves_y1 = get_moves(position(0, min(30, p.y), 0));
+        vector <command> moves_y2 = get_moves(position(0, min(29, p.y - 1), 0));
+        if (moves_y2.size() < moves_y1.size()) moves_y2.push_back(Wait());
+        for (int i = 0; i < moves_y1.size(); i++) {
             if (i == 0) {
                 traces.push_back(FusionP(0, 1, 0));
             } else {
@@ -979,10 +995,10 @@ vector <command> calc_large(const region& box, const position& p) {
             }
             traces.push_back(Wait());
             traces.push_back(Wait());
-            traces.push_back(moves_y[i]);
+            traces.push_back(moves_y1[i]);
             traces.push_back(Wait());
-            traces.push_back(moves_y[i]);
-            traces.push_back(moves_y[i]);
+            traces.push_back(moves_y1[i]);
+            traces.push_back(moves_y2[i]);
             if (i == 0) traces.push_back(FusionS(0, -1, 0));
         }
         
@@ -994,17 +1010,18 @@ vector <command> calc_large(const region& box, const position& p) {
         traces.push_back(FusionS(0, 1, 0));
         traces.push_back(FusionS(0, 1, 0));
         
-        vector <command> moves_z = get_moves(position(0, 0, -min(29, p.z)));
-        for (int i = 0; i < moves_z.size(); i++) {
+        vector <command> moves_z1 = get_moves(position(0, 0, -min(29, p.z)));
+        vector <command> moves_z2 = get_moves(position(0, 0, -min(30, p.z + 1)));
+        if (moves_z1.size() < moves_z2.size()) moves_z1.push_back(Wait());
+        for (int i = 0; i < moves_z1.size(); i++) {
             if (i == 0) {
-                traces.push_back(SMove(0, 1, 0));
                 traces.push_back(SMove(0, 1, 0));
             } else {
                 traces.push_back(Wait());
-                traces.push_back(Wait());
             }
-            traces.push_back(moves_z[i]);
-            traces.push_back(moves_z[i]);
+            traces.push_back(Wait());
+            traces.push_back(moves_z2[i]);
+            traces.push_back(moves_z1[i]);
         }
         
         traces.push_back(FusionP(0, 0, 1));
