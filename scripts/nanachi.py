@@ -275,7 +275,7 @@ def update_ranking():
     cursor = connection.cursor(dictionary=True)
     cursor.executemany(
         "INSERT INTO tblofficial_ranking (problem_id, name, energy) VALUES (%s, %s, %s) "
-        "ON DUPLICATE UPDATE "
+        "ON DUPLICATE KEY UPDATE "
         "name=IF(energy < VALUE(energy), VALUE(name), name), "
         "energy=MAX(energy, VALUE(energy))",
     values)
