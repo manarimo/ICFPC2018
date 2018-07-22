@@ -80,7 +80,7 @@ def best_traces():
         blobs = {}  # todo: do this in single query
         for trace in traces.values():
             cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace["trace_id"], ))
-            blob = cursor.fetchone()[b"body"]
+            blob = cursor.fetchone()["body"]
             blobs[trace["problem_name"]] = blob
         cursor.close()
         connection.commit()
@@ -104,8 +104,13 @@ def trace_register():
             energy = int(request.form["energy"])
         else:
             energy = None
-        nbt_blob = request.files["nbt-blob"].read()
-        trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
+        if "nbt-blob" in request.files:
+            nbt_blob = request.files["nbt-blob"].read()
+        else:
+            nbt_blob = None
+        s3_url = request.form.get('s3url', None)
+        sha1sum = request.form.get('sha1sum', None)
+        trace_id = register_trace.register(name, nbt_blob, energy, author, comment, s3_url, sha1sum)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
         return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
@@ -115,7 +120,7 @@ def trace_register():
 def trace_blob(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace_id,))
-    blob = cursor.fetchone()[b"body"]
+    blob = cursor.fetchone()["body"]
     cursor.close()
     connection.commit()
     response = make_response(blob)
@@ -136,7 +141,7 @@ def trace_summary(trace_id: int):
         (trace_id,))
     row = cursor.fetchone()
     print(row)
-    row["submit_time_string"] = row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S')
+    row["submit_time_string"] = row["submit_time"].strftime('%Y-%m-%d %H:%M:%S')
     cursor.close()
     connection.commit()
     return render_template("trace_summary.html", trace=row)
@@ -165,7 +170,7 @@ def update_autoscorer(trace_id: int):
 def model_blob(name: str):
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT body FROM tblmodel WHERE name=%s", (name,))
-    blob = cursor.fetchone()[b"body"]
+    blob = cursor.fetchone()["body"]
     cursor.close()
     connection.commit()
     response = make_response(blob)
@@ -183,7 +188,7 @@ def model_summary(name: str):
         "JOIN tblmodel ON tbltrace.model_id = tblmodel.id WHERE tblmodel.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
         (name,))
     tracerows = tracecursor.fetchall()
-    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
+    tracerows = [dict(row, **{ "submit_time_string": row["submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
     tracecursor.close()
     connection.commit()
 
@@ -245,7 +250,7 @@ def problem_summary(name: str):
         "JOIN tblproblem ON tbltrace.problem_id = tblproblem.id WHERE tblproblem.name=%s ORDER BY tm.energy IS NULL, tm.energy ASC",
         (name,))
     tracerows = tracecursor.fetchall()
-    tracerows = [dict(row, **{ "submit_time_string": row[b"submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
+    tracerows = [dict(row, **{ "submit_time_string": row["submit_time"].strftime('%Y-%m-%d %H:%M:%S') }) for row in tracerows]
     tracecursor.close()
     connection.commit()
 
@@ -299,4 +304,4 @@ def hello():
 if __name__ == "__main__":
     message_level = logging.WARN if const.env == "prod" else logging.INFO
     logging.basicConfig(level=message_level)
-    app.run(host="localhost", port=8081)
+    app.run(host="localhost", port=8081, processes=4, threaded=False)

@@ -1,0 +1,104 @@
+---1
+fission 0 1 0 4
+---1,2
+fission 1 0 0 0
+fission 0 1 0 1
+---1,2,3,7
+fission 0 0 1 0
+fission 1 0 0 0
+fission 0 1 0 0
+lmove 5 0 0 0 3 0
+---1,2,3,4,5,7,8
+smove 12 0 0
+fission 0 0 1 0
+smove 7 0 0
+smove 0 15 0
+smove 11 0 0
+smove 0 0 10
+lmove 0 0 5 0 3 0
+---
+smove 0 0 10
+smove 7 0 0
+smove 0 15 0
+smove 12 0 0
+smove 0 0 7
+smove 0 0 10
+smove 0 15 0
+smove 10 0 0
+---
+wait
+smove 0 0 6
+smove 0 0 6
+smove 0 0 11
+wait
+smove 6 0 0
+wait
+smove 0 15 0
+---
+gfill -1 0 1 0 18 -4
+gfill 0 -1 1 0 18 4
+gfill 0 1 1 0 -18 4
+gfill -1 0 0 0 -18 -4
+gfill -1 -1 0 0 18 4
+gfill 1 -1 0 0 18 -4
+gfill 1 0 1 0 -18 -4
+gfill 1 0 1 0 -18 4
+gfill -1 0 1 -4 0 -4
+gfill 0 -1 1 4 0 4
+gfill 0 1 1 4 0 4
+gfill -1 0 0 -4 0 -4
+gfill -1 -1 0 -4 0 4
+gfill 1 -1 0 4 0 -4
+gfill 1 0 1 4 0 -4
+gfill 1 0 1 -4 0 4
+gfill -1 0 1 -4 18 0
+gfill 0 -1 1 4 18 0
+gfill 0 1 1 4 -18 0
+gfill -1 0 0 -4 -18 0
+gfill -1 -1 0 -4 18 0
+gfill 1 -1 0 4 18 0
+gfill 1 0 1 4 -18 0
+gfill 1 0 1 -4 -18 0
+---
+wait
+smove 0 0 -6
+smove 0 0 -6
+smove 0 0 -11
+wait
+smove -6 0 0
+wait
+smove 0 -15 0
+---
+smove 0 0 -10
+smove -7 0 0
+smove 0 -15 0
+smove -12 0 0
+smove 0 0 -7
+smove 0 0 -10
+smove 0 -15 0
+smove -10 0 0
+---1,2,3,4,5,7,8
+smove -12 0 0
+fusionp 0 0 1
+smove -7 0 0
+smove 0 -15 0
+smove -11 0 0
+fusions 0 0 -1
+smove 0 0 -10
+lmove 0 -3 0 0 0 -5
+---
+fusionp 0 0 1
+fusionp 1 0 0
+fusionp 0 1 0
+fusions 0 -1 0
+fusions -1 0 0
+lmove 0 -3 0 -5 0 0
+fusions 0 0 -1
+---
+fusionp 1 0 0
+fusionp 0 1 0
+fusions 0 -1 0
+fusions -1 0 0
+fusionp 0 1 0
+fusions 0 -1 0
+halt
