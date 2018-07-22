@@ -32,9 +32,12 @@ def assets(path):
 @app.route("/api/pending_traces")
 def pending_traces():
     cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT `name` AS model_name, trace_id, energy, author, comment "
+    cursor.execute("SELECT p.name AS problem_name, trace_id, energy, author, comment, "
+                   "src.name AS src_model, tgt.name AS tgt_model "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
-                   "JOIN tblproblem ON tblproblem.id = tbltrace.problem_id "
+                   "JOIN tblproblem p ON p.id = tbltrace.problem_id "
+                   "LEFT JOIN tblmodel src ON p.src_model_id = src.id "
+                   "LEFT JOIN tblmodel tgt ON p.tgt_model_id = tgt.id "
                    "WHERE tbltrace_metadata.energy_autoscorer IS NULL AND tbltrace_metadata.failed IS NULL")
     traces = cursor.fetchall()
     cursor.close()
