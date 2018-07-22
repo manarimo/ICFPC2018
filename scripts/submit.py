@@ -18,15 +18,14 @@ def generate_zip(destination: Path, blobs: Dict[str, bytes]):
 
 
 def upload_to_s3(filepath: Path):
+    ### DO NOT PRINT ANYTHING IN THIS FUNCTION!!!!!!!!!!!! RUN_WITH_SCORE.RB SERIOUSLY BREAKS!!!!!!!!!
     hasher = hashlib.sha256()
     with filepath.open("rb") as f:
         hasher.update(f.read())
     digest = hasher.hexdigest()
-    print("SHA256 Digest: {}".format(digest))
 
     path = "submissions/{}.zip".format(digest)
     destination = "s3://{}/{}".format(S3_BUCKET, path)
-    print("Uploading a file to {}".format(destination))
     s3 = boto3.resource('s3')
     with filepath.open("rb") as f:
         s3.Bucket(S3_BUCKET).put_object(Key=path, Body=f)

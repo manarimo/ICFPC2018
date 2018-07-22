@@ -175,8 +175,9 @@ struct bot {
         cout << "wait" << '\n';
     }
 
-    void flip() {
+    void flip(int turn) {
         if (!active) return;
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
         high = !high;
 #ifdef DBG
         cout << bid << ": ";
@@ -256,24 +257,27 @@ struct bot {
         return bot({pos + nd, nbid, s, true});
     }
 
-    void fill(P d) {
+    void fill(P d, int turn) {
         if (!active) return;
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
         cout << bid << ": ";
 #endif
         cout << "fill " << d << '\n';
     }
 
-    void gfill(P nd, P fd) {
+    void gfill(P nd, P fd, int turn) {
         assert(active);
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
         cout << bid << ": ";
 #endif
         cout << "gfill " << nd << ' ' << fd << '\n';
     }
 
-    void gvoid(P nd, P fd) {
+    void gvoid(P nd, P fd, int turn) {
         assert(active);
+        vol[pos.x][pos.y][pos.z] = max(vol[pos.x][pos.y][pos.z], turn + 2);
 #ifdef DBG
         cout << bid << ": ";
 #endif
@@ -382,7 +386,7 @@ vector<int> calcBlockSum(int y, int xs) {
     return res;
 }
 
-vector<int> addNext(vector<queue<P>> &q, int y) {
+vector<int> addNext(vector<deque<P>> &q, int y) {
     auto range = calcBlockSum(y, SEED / 2);
 
     for (int x = 0; x < R; ++x) {
@@ -392,8 +396,13 @@ vector<int> addNext(vector<queue<P>> &q, int y) {
             while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
             for (int i = 1; i <= SEED / 2; ++i) {
                 if (x < range[i]) {
-                    q[(i - 1) * 2].push({x, y + 1, z - 1});
-                    q[(i - 1) * 2 + 1].push({x, y + 1, r});
+                    if (x < R/2) {
+                        q[(i - 1) * 2].push_front({x, y + 1, z - 1});
+                        q[(i - 1) * 2 + 1].push_front({x, y + 1, r});
+                    } else {
+                        q[(i - 1) * 2].push_back({x, y + 1, z - 1});
+                        q[(i - 1) * 2 + 1].push_back({x, y + 1, r});
+                    }
                     z = r - 1;
                     break;
                 }
@@ -541,6 +550,10 @@ void addConnectivity(const P &src, const P &dst, UnionFind &uf) {
     }
 }
 
+bool ndist(const P &p1, const P &p2) {
+    return max(max(abs(p1.x - p2.x), abs(p1.y - p2.y)), abs(p1.z - p2.z)) == 1 && abs(p1 - p2) <= 2;
+}
+
 int main() {
     input();
 
@@ -553,14 +566,14 @@ int main() {
         bots[0] = bot{{0, 0, 0}, 0, seeds, SEED, true};
     }
 
-    vector<queue<P>> q(SEED);
+    vector<deque<P>> q(SEED);
 
     auto range = addNext(q, 0);
 
     vector<P> dst;
     for (int i = 0; i < SEED / 2; ++i) {
-        dst.push_back(P{range[i], rand() % min(R, 3) + 1, 0});
-        dst.push_back(P{range[i], rand() % min(R, 3) + 1, R - 1});
+        dst.push_back(P{range[i], rand() % min(R, 3) + 2, 0});
+        dst.push_back(P{range[i], rand() % min(R, 3) + 2, R - 1});
     }
 
     int turn = 1;
@@ -641,15 +654,15 @@ int main() {
 #endif
             range = addNext(q, curY);
             for (int i = 0; i < SEED / 2; ++i) {
-                dst[i] = (P{range[i], curY + 1, 0});
-                dst[i] = (P{range[i], curY + 1, R - 1});
+                dst[i*2] = (P{range[i], curY + 1, 0});
+                dst[i*2 + 1] = (P{range[i], curY + 1, R - 1});
             }
             curY++;
             continue;
         }
         for (int i = 0; i < SEED; ++i) {
-            if (q[i].front() != dst[i]) {
-                if (!q[i].empty()) dst[i] = q[i].front();
+            if (!q[i].empty() && q[i].front() != dst[i]) {
+                dst[i] = q[i].front();
             }
         }
 
@@ -657,8 +670,8 @@ int main() {
         set<int> busy;
         for (int i = 0; i < SEED / 2; ++i) {
             int a = i * 2, b = i * 2 + 1;
-            if (bots[a].pos.y == curY && bots[a].pos == dst[a] && bots[b].pos == dst[b] && busy.size() + 2 < activeBots) {
-                P na = {0, -1, 1}, nb = {0, -1, -1};
+            if (dst[a].y == curY && ndist(bots[a].pos, dst[a] + P{0, -1, 1}) && ndist(bots[b].pos, dst[b] + P{0, -1, -1}) && busy.size() + 2 < activeBots) {
+                P na = dst[a] + P{0, -1, 1} - bots[a].pos, nb = dst[b] + P{0, -1, -1} - bots[b].pos;
 
                 if (!failVolatile(bots[b].pos + nb, bots[a].pos + na, turn)) {
                     continue;
@@ -672,25 +685,25 @@ int main() {
                     cerr << "gfill: " << bedge - aedge << endl;
 #endif
                     gfill[a] = [=](bot &botA) {
-                        botA.gfill(na, bedge - aedge);
+                        botA.gfill(na, bedge - aedge, turn);
                         return true;
                     };
                     gfill[b] = [=](bot &botB) {
-                        botB.gfill(nb, aedge - bedge);
+                        botB.gfill(nb, aedge - bedge, turn);
                         return true;
                     };
                     busy.insert(a);
                     busy.insert(b);
                 } else {
                     gfill[a] = [=](bot &botA) {
-                        botA.fill(na);
+                        botA.fill(na, turn);
                         return true;
                     };
                     busy.insert(a);
                 }
 
-                q[a].pop();
-                q[b].pop();
+                q[a].pop_front();
+                q[b].pop_front();
                 cnt += abs(bedge - aedge) + 1;
                 fillVolatile(aedge, bedge, INF);
                 addConnectivity(bedge, aedge, uf);
@@ -703,8 +716,8 @@ int main() {
             cerr << "cnt + 1: " << cnt + 1 << endl;
 #endif
             if (high && uf.size(0) == cnt + 1 || !high && uf.size(0) < cnt + 1) {
-                gfill[i] = [](bot &b) {
-                    b.flip();
+                gfill[i] = [=](bot &b) {
+                    b.flip(turn);
                     return true;
                 };
             }
@@ -724,7 +737,7 @@ int main() {
         for (int i = 0; i < R; ++i)
             for (int j = 0; j < R; ++j)
                 for (int k = 0; k < R; ++k)
-                    returnDist[i][j][k] = 1e9;
+                    returnDist[i][j][k] = INF;
         queue<P> q;
         returnDist[0][0][0] = 0;
         q.push({0, 0, 0});
@@ -733,7 +746,7 @@ int main() {
             q.pop();
             for (int d = 0; d < 6; ++d) {
                 int nx = p.x + dx[d], ny = p.y + dy[d], nz = p.z + dz[d];
-                if (!in(nx, ny, nz) || returnDist[nx][ny][nz] != 1e9) continue;
+                if (!in(nx, ny, nz) || returnDist[nx][ny][nz] != INF) continue;
                 if (vol[nx][ny][nz] > turn + 10) continue;
                 returnDist[nx][ny][nz] = returnDist[p.x][p.y][p.z] + 1;
                 q.push({nx, ny, nz});

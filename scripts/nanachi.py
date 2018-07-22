@@ -104,8 +104,13 @@ def trace_register():
             energy = int(request.form["energy"])
         else:
             energy = None
-        nbt_blob = request.files["nbt-blob"].read()
-        trace_id = register_trace.register(name, nbt_blob, energy, author, comment)
+        if "nbt-blob" in request.files:
+            nbt_blob = request.files["nbt-blob"].read()
+        else:
+            nbt_blob = None
+        s3_url = request.form.get('s3url', None)
+        sha1sum = request.form.get('sha1sum', None)
+        trace_id = register_trace.register(name, nbt_blob, energy, author, comment, s3_url, sha1sum)
         return Response(json.dumps({"status": "success", "trace_id": trace_id}), content_type='application/json')
     except Exception as e:
         return Response(json.dumps({"status": "failure", "message": str(e)}), content_type='application/json')
@@ -283,8 +288,8 @@ def update_ranking():
     cursor.executemany(
         "INSERT INTO tblofficial_ranking (problem_id, name, energy) VALUES (%s, %s, %s) "
         "ON DUPLICATE KEY UPDATE "
-        "name=IF(energy < VALUES(energy), VALUES(name), name), "
-        "energy=GREATEST(energy, VALUES(energy))",
+        "name=IF(energy > VALUES(energy), VALUES(name), name), "
+        "energy=LEAST(energy, VALUES(energy))",
     values)
     cursor.close()
     connection.commit()
@@ -299,4 +304,4 @@ def hello():
 if __name__ == "__main__":
     message_level = logging.WARN if const.env == "prod" else logging.INFO
     logging.basicConfig(level=message_level)
-    app.run(host="localhost", port=8081, processes=4, threaded=False)
+    app.run(host="localhost", port=8081, processes=12, threaded=False)

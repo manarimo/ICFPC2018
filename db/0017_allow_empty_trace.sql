@@ -1,0 +1,1 @@
+ALTER TABLE tbltrace_metadata ADD COLUMN s3url longtext DEFAULT NULL;

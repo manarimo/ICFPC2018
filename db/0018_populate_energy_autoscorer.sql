@@ -1,0 +1,1 @@
+UPDATE tbltrace_metadata SET energy_autoscorer = energy WHERE energy IS NOT NULL and energy_autoscorer IS NULL;
