@@ -4,7 +4,7 @@ using namespace std;
 
 const int RMAX = 250;
 const int SEED = 40;
-bool field[RMAX][RMAX][RMAX]; // x, y, z
+int field[RMAX][RMAX][RMAX]; // x, y, z
 bool placed[RMAX][RMAX][RMAX]; // x, y, z
 int R, NUM;
 
@@ -158,6 +158,7 @@ struct bot {
     int seed;
     bool active;
     bool working;
+    int wid;
 
     void halt() {
 #ifdef DBG
@@ -387,31 +388,75 @@ vector<int> calcBlockSum(int y, int xs) {
     return res;
 }
 
-void addNext(deque<pair<P, P>> &q) {
-    for (int y = 0; y < R; ++y) {
-        vector<pair<P, P>> v;
-        for (int x = 0; x < R; ++x) {
-            for (int z = 0; z < R; ++z) {
-                if (!field[x][y][z]) continue;
-                int r = z;
-                while (r < R - 1 && field[x][y][r] && r - z < 30) ++r;
-                v.push_back(make_pair(P{x, y + 1, z}, P{x, y + 1, r - 1}));
-                z = r - 1;
-            }
-        }
-        sort(v.begin(), v.end(), [](const pair<P, P> &pp1, const pair<P, P> &pp2) {
-            auto &p1 = pp1.first;
-            auto &p2 = pp2.first;
-            return abs(R/2 - p1.x) + abs(R/2 - p1.z) < abs(R/2 - p2.x) + abs(R/2 - p2.z);
-        } );
-        for (auto e : v) q.push_back(e);
-    }
+struct task {
+    int id, y;
+    P p1, p2;
+    set<int> floor, ceil, side;
+    int floorCnt;
+    bool done, used;
+};
+
+ostream &operator<<(ostream &os, const task &t) {
+    os << "---------------------------------------" << '\n';
+    os << "id=" << t.id << ", " << (t.used ? "ASSIGNED" : "NOT ASSIGNED") << " " << (t.done ? "FILLED" : "NOT FILLED") << '\n';
+    os << "floor";
+    for (auto e : t.floor) os << " " << e;
+    os << '\n' << "ceil";
+    for (auto e : t.ceil) os << " " << e;
+    os << '\n' << "side";
+    for (auto e : t.side) os << " " << e;
+    os << '\n';
+    os << t.p1 << " - " << t.p2 << '\n';
+    os << "---------------------------------------";
+    return os;
 }
 
 int dx[] = {0, 1, 0, -1, 0, 0};
 int dy[] = {0, 0, 0, 0, -1, 1};
 int dz[] = {1, 0, -1, 0, 0, 0};
 DIR dM[] = {Z, X, Z, X, Y, Y};
+
+vector<int> tid[RMAX];
+map<int, task> findTasks(deque<task> &q) {
+    map<int, task> tasks;
+    int id = 2;
+    for (int y = 0; y < R; ++y) {
+        vector<pair<P, P>> v;
+        for (int x = 0; x < R; ++x) {
+            for (int z = 0; z < R; ++z) {
+                if (!field[x][y][z]) continue;
+                int r = z;
+                while (r < R && field[x][y][r] && r - z < 30) ++r;
+                tasks[id] = task{id, y, P{x, y + 1, z}, P{x, y + 1, r - 1}, set<int>(), set<int>(), set<int>(), 0, false, false};
+                auto &t = tasks[id];
+
+                for (int i = z; i < r; ++i) {
+                    field[x][y][i] = id;
+                    if (y > 0 && field[x][y - 1][i] > 1) {
+                        int fid = field[x][y - 1][i];
+                        tasks[fid].ceil.insert(id);
+                        t.floor.insert(fid);
+                    }
+                    for (int d = 0; d < 4; ++d) {
+                        int nx = x + dx[d], ny = y, nz = i + dz[d];
+                        if (in(nx, ny, nz) && field[nx][ny][nz] > 1 && field[nx][ny][nz] != id) {
+                            t.side.insert(field[nx][ny][nz]);
+                            tasks[field[nx][ny][nz]].side.insert(id);
+                        }
+                    }
+                }
+                if (y == 0) {
+                    q.push_back(t);
+                    t.used = true;
+                }
+                z = r - 1;
+                tid[y].push_back(id);
+                id++;
+            }
+        }
+    }
+    return tasks;
+}
 
 int abs(const P &p) {
     return abs(p.x) + abs(p.y) + abs(p.z);
@@ -567,13 +612,15 @@ int main() {
         bots[0] = bot{{0, 0, 0}, 0, seeds, SEED, true};
     }
 
-    deque<pair<P, P>> q;
-    addNext(q);
+    cerr << "preprocessing start" << endl;
+    deque<task> q;
+    map<int, task> tasks = findTasks(q);
 
     vector<P> dst(SEED);
     for (int i = 0; i < SEED; ++i) {
         dst[i] = P{R / 2 - 3 + rand() % 6, 1, R / 2 - 3 + rand()};
     }
+    cerr << "preprocessing end" << endl;
 
     int turn = 1;
     cerr << "fission start" << endl;
@@ -635,48 +682,47 @@ int main() {
     }
     cerr << "fission end" << endl;
 
+    int forceY = 1;
+
     int cnt = 0, curY = 1;
-    map<int, int> height, fri;
+    map<int, int> fri;
     int worker = SEED;
     while (cnt < NUM) {
-        while(!q.empty() && worker > 0) {
-            auto p = q.front();
-            q.pop_front();
-            int a = helloWork(bots, p.first);
-            bots[a].working = true; worker--;
-            int b = helloWork(bots, p.second);
-            bots[b].working = true; worker--;
-            dst[a] = p.first;
-            dst[b] = p.second;
-            ++height[p.first.y];
-            fri[a] = b;
-            fri[b] = a;
-
-#ifdef DBG
-            cerr << "new task:" << endl;
-            cerr << "assigned (" << p.first << ") to " << a << endl;
-            cerr << "assigned (" << p.second << ") to " << b << endl;
-#endif
-        }
-        if (q.empty()) {
-            for (int i = 0; i < activeBots; ++i) {
-                if (!bots[i].working) {
-                    dst[i] = P{0, R - 1, 0};
+        cerr << cnt << '/' << NUM << endl;
+        if (false) {
+//        if (q.empty()) {
+            for (auto id : tid[forceY]) {
+                auto &t = tasks[id];
+                if (t.used) continue;
+                t.used = true;
+                q.push_back(t);
+            }
+            forceY++;
+            if (q.empty()) {
+                for (int i = 0; i < activeBots; ++i) {
+                    if (!bots[i].working) dst[i] = {0, R-1, 0};
                 }
             }
         }
 
-        if (height[curY] == 0) {
-            if (curY > R) exit(1);
+        while(!q.empty() && worker >= 2) {
+            auto t = q.front();
+            q.pop_front();
+            int a = helloWork(bots, t.p1);
+            bots[a].working = true; worker--;
+            int b = helloWork(bots, t.p2);
+            bots[b].working = true; worker--;
+            dst[a] = t.p1;
+            dst[b] = t.p2;
+            fri[a] = b;
+            fri[b] = a;
+            bots[a].wid = bots[b].wid = t.id;
+
+            cerr << "new task:" << t.id << endl;
+            cerr << "assigned (" << t.p1 << ") to " << a << endl;
+            cerr << "assigned (" << t.p2 << ") to " << b << endl;
 #ifdef DBG
-            cerr << "height " << curY << " OK" << endl;
-            cerr << "placed " << cnt << "/" << NUM << " so far" << endl;
 #endif
-            curY++;
-            for (int i = 0; i < SEED; ++i) {
-                if (dst[i].y < curY) dst[i].y = curY;
-            }
-            continue;
         }
 
         auto gfill = vector<function<bool(bot &)>>(SEED, NOP);
@@ -699,7 +745,7 @@ int main() {
 #endif
             static const P DA = P{0, -1, 0};
             static const P DB = P{0, -1, 0};
-            if (dst[a].y == curY && dst[b].y == curY && ndist(bots[a].pos, dst[a] + DA) && ndist(bots[b].pos, dst[b] + DB) && busy.size() + 2 < activeBots) {
+            if (ndist(bots[a].pos, dst[a] + DA) && ndist(bots[b].pos, dst[b] + DB) && busy.size() + 2 < activeBots) {
                 P na = dst[a] + DA - bots[a].pos, nb = dst[b] + DB - bots[b].pos;
 
                 if (!failVolatile(bots[b].pos + nb, bots[a].pos + na, turn)) {
@@ -735,13 +781,40 @@ int main() {
                 fillVolatile(aedge, bedge, INF);
                 addConnectivity(bedge, aedge, uf);
 
-                --height[dst[a].y];
                 fri[a] = fri[b] = -1;
                 bots[a].working = false;
                 bots[b].working = false;
                 worker += 2;
-                dst[a].y += 1;
-                dst[b].y += 1;
+                dst[a].y += 1, dst[b].y += 1;
+
+                auto &t = tasks[bots[a].wid];
+                t.done = true;
+                for (auto e : t.side) {
+                    auto &nt = tasks[e];
+                    if (nt.used) continue;
+                    if (nt.floor.size() == nt.floorCnt) {
+                        nt.used = true;
+                        q.push_back(nt);
+                    }
+                }
+
+                for (auto e : t.ceil) {
+                    auto &nt = tasks[e];
+                    if (nt.used) continue;
+                    if (nt.floor.size() == ++nt.floorCnt) {
+                        nt.used = true;
+                        q.push_back(nt);
+                    }
+                }
+
+                for (auto e : t.floor) {
+                    auto &nt = tasks[e];
+                    if (nt.used) continue;
+                    if (nt.floor.size() == nt.floorCnt) {
+                        nt.used = true;
+                        q.push_back(nt);
+                    }
+                }
             }
         }
 
@@ -780,6 +853,12 @@ int main() {
         if (baguru || turn > 10000) {
             cerr << "turn:" << turn << endl;
             cerr << pcnt << ' ' << cnt << endl;
+            cerr << "bots:" << endl;
+            cerr << "tasks:" << endl;
+            for (auto &t : tasks) {
+                cerr << t.second << endl;
+                cerr << t.second.floorCnt << "/" << t.second.floor.size() << endl;
+            }
             for (int i = 0; i < activeBots; ++i) {
                 cerr << "prv pos of     " << i << ": " << vp[i] << endl;
                 cerr << "current pos of " << i << ": " << bots[i].pos << endl;
@@ -858,4 +937,3 @@ int main() {
 
     return 0;
 }
-
