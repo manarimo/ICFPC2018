@@ -451,9 +451,9 @@ vector<string> find_path(int W, vector<vector<vector<char> > >& currentModel, Po
     }
 
     // unreachable
-    cerr << "DEAD END" << endl;
-    // return vector<string>();
-    exit(1);
+    // cerr << "DEAD END" << endl;
+    return vector<string>();
+    // exit(1);
 }
 
 vector<Point> corners(const Point& a, const Point& b) {
@@ -473,76 +473,123 @@ struct NextTask {
     NextTask(const Point& a, const Point& b, bool gfill, vector<char>& active, vector<Point>& corners, vector<set<Point> >& goals) : a(a), b(b), gfill(gfill), active(active), corners(corners), goals(goals) {}
 };
 
+int try_0d(const int W, vector<vector<vector<char> > >& model, vector<vector<vector<char> > >& currentModel, vector<Point>& tasks, int fromIdx, NextTask& out) {
+    set<Point> additional;
+    Point p = tasks[fromIdx];
+    additional.insert(p);
+    vector<char> active(2); active[0] = true;
+    vector<vector<vector<char> > > zone = alive_zone(W, currentModel, additional);
+    vector<set<Point> > goals(2);
+    bool dead = false;
+    for (int i = fromIdx + 1; i < tasks.size(); i++) {
+        if (!tasks[i].access(currentModel) && !tasks[i].access(zone)) {
+            dead = true;
+            break;
+        }
+    }
+    if (dead) return 1;
+    vector<Point> ps = vector<Point>(1, p);
+    for (int i = 0; i < 2; i++) {
+        goals.push_back(set<Point>());
+        for (int j = 0; j < NUM_ND; j++) {
+            Point p = ps[i] + nds[j];
+            if (p.inside(W, R, R) && p.access(zone)) {
+                goals[i].insert(p);
+            }
+        }
+        if (!goals[i].size()) {
+            dead = true;
+            break;
+        }
+    }
+    if (dead) return 1;
+    out = NextTask(p, p, active[1], active, ps, goals);
+    return 0;
+}
+
+int try_1d(const int W, vector<vector<vector<char> > >& model, vector<vector<vector<char> > >& currentModel, vector<Point>& tasks, int fromIdx, NextTask& out) {
+    set<Point> additional;
+    additional.insert(tasks[fromIdx]);
+    vector<char> active(2); active[0] = true;
+    Point upper = tasks[fromIdx];
+    Point lower = tasks[fromIdx];
+    int limit = 0;
+    for (; limit < 30; ) {
+        Point cand = upper + Point(0, 0, 1);
+        if (!cand.inside(W, R, R) || !cand.access(model)) {
+            break;
+        }
+        upper = cand;
+        additional.insert(cand);
+        active[1] = true;
+        limit++;
+    }
+    for (; limit < 30; ) {
+        Point cand = lower + Point(0, 0, -1);
+        if (!cand.inside(W, R, R) || !cand.access(model)) {
+            break;
+        }
+        lower = cand;
+        additional.insert(cand);
+        active[1] = true;
+        limit++;
+    }
+    if (limit < 2) return 1;
+    vector<vector<vector<char> > > zone = alive_zone(W, currentModel, additional);
+    vector<set<Point> > goals(2);
+    bool dead = false;
+    for (int i = fromIdx + 1; i < tasks.size(); i++) {
+        if (tasks[i].inside(lower.x, upper.x + 1, lower.y, upper.y + 1, lower.z, upper.z + 1)) {
+            continue;
+        }
+        if (!tasks[i].access(currentModel) && !tasks[i].access(zone)) {
+            dead = true;
+            break;
+        }
+    }
+    if (dead) return 1;
+    vector<Point> ps = corners(lower, upper);
+    for (int i = 0; i < 2; i++) {
+        goals.push_back(set<Point>());
+        for (int j = 0; j < NUM_ND; j++) {
+            Point p = ps[i] + nds[j];
+            if (p.inside(W, R, R) && p.access(zone)) {
+                goals[i].insert(p);
+            }
+        }
+        if (!goals[i].size()) {
+            dead = true;
+            break;
+        }
+    }
+    if (dead) return 1;
+    out = NextTask(lower, upper, active[1], active, ps, goals);
+    return 0;
+}
+
 NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<vector<vector<char> > >& currentModel, vector<Point>& tasks, int& fromIdx) {
     while (fromIdx < tasks.size() && tasks[fromIdx].access(currentModel)) fromIdx++;
     if (fromIdx == tasks.size()) {
         return NextTask();
     }
-    set<Point> additional;
     int renzoku = 0;
     while (true) {
-        additional.insert(tasks[fromIdx]);
-        vector<char> active(2); active[0] = true;
-        Point upper = tasks[fromIdx];
-        Point lower = tasks[fromIdx];
-        int limit = 0;
-        for (; limit < 30; ) {
-            Point cand = upper + Point(0, 0, 1);
-            if (!cand.inside(W, R, R) || !cand.access(model)) {
-                break;
-            }
-            upper = cand;
-            additional.insert(cand);
-            active[1] = true;
-            limit++;
-        }
-        for (; limit < 30; ) {
-            Point cand = lower + Point(0, 0, -1);
-            if (!cand.inside(W, R, R) || !cand.access(model)) {
-                break;
-            }
-            lower = cand;
-            additional.insert(cand);
-            active[1] = true;
-            limit++;
-        }
-        vector<vector<vector<char> > > zone = alive_zone(W, currentModel, additional);
-        vector<set<Point> > goals(2);
-        bool dead = false;
-        for (int i = fromIdx + 1; i < tasks.size(); i++) {
-            if (tasks[i].inside(lower.x, upper.x + 1, lower.y, upper.y + 1, lower.z, upper.z + 1)) {
+        NextTask nextTask;
+        int res = try_1d(W, model, currentModel, tasks, fromIdx, nextTask);
+        if (res) {
+            int res2 = try_0d(W, model, currentModel, tasks, fromIdx, nextTask);
+            if (res2) {
+                tasks.push_back(tasks[fromIdx]);
+                fromIdx++;
+                renzoku++;
+                if (renzoku >= tasks.size() - fromIdx) {
+                    cerr << "> <" << endl;
+                    return NextTask();
+                }
                 continue;
             }
-            if (!tasks[i].access(currentModel) && !tasks[i].access(zone)) {
-                dead = true;
-                break;
-            }
         }
-        vector<Point> ps = corners(lower, upper);
-        for (int i = 0; i < 2; i++) {
-            goals.push_back(set<Point>());
-            for (int j = 0; j < NUM_ND; j++) {
-                Point p = ps[i] + nds[j];
-                if (p.inside(W, R, R) && p.access(zone)) {
-                    goals[i].insert(p);
-                }
-            }
-            if (!goals[i].size()) {
-                dead = true;
-                break;
-            }
-        }
-        if (dead) {
-            tasks.push_back(tasks[fromIdx]);
-            fromIdx++;
-            renzoku++;
-            if (renzoku >= tasks.size() - fromIdx) {
-                cerr << "> <" << endl;
-                return NextTask();
-            }
-            continue;
-        }
-        return NextTask(lower, upper, active[1], active, ps, goals);
+        return nextTask;
     }
 }
 
@@ -621,7 +668,7 @@ int main() {
     read_input();
     cerr << "読み込みおわり" << endl;
 
-    N = min(20, R / 2);
+    N = min(20, R);
     // とりあえずxで雑に分割
     vector<int> x_range(N + 1);
     for (int i = 0; i < N; i++) {
