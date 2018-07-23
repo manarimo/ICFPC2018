@@ -6,7 +6,7 @@
 (English translation follows)
 ## Manarimo 
 Manarimo is an Algae in the family Narimo. It distributes Tohoku and northward in Japan.
-It is also known as "Natural water quality administrator" for its characteristic that inhabits only in clean lakes.
+It is also known as "Natural water quality inspector" for its characteristic that inhabits only in clean lakes.
 
 
 ## Members
