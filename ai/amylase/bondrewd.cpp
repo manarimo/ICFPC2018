@@ -1332,6 +1332,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // super hack!!!!! yuruse
+    string filePath(argv[1]);
+    string fileName = filePath.substr(filePath.size() - 13);
+    bool disassembly = fileName[1] == 'D';
+
+    cerr << "bondrewd running in " << (disassembly ? "disassembly" : "assembly") << " mode" << endl;
+
     ifstream in(argv[1]);
     auto *model = new Model(in);
     cerr << "Model loaded. size = " << model->size << endl;
@@ -1347,6 +1354,16 @@ int main(int argc, char** argv) {
     cerr << "assembly loaded. #turns = " << turns.size() << endl;
 
     State state(model->size);
+    if (disassembly) {
+        for (int i = 0; i < state.filled.size(); ++i) {
+            for (int j = 0; j < state.filled.size(); ++j) {
+                for (int k = 0; k < state.filled.size(); ++k) {
+                    state.filled[i][j][k] = model->field[i][j][k];
+                }
+            }
+        }
+    }
+
     vector<Step> steps;
     for (int i = 0; i < turns.size(); ++i) {
         steps.emplace_back(state, turns[i]);
