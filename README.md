@@ -25,6 +25,9 @@
 * kawatea/cube: 中身が詰まった立方体を構成する。GFill を使って周囲を立方体で埋め、残りを面で埋めていく。
 * kawatea/hand: 簡単かつ特徴的な面を手で解くためのサポートツール。
 * yuusti/大体正の点数を取る (Get Positive Score in Most Cases): 20台で下から貪欲に作成、groundedならharmonicsをlowに切り替える。y軸ごとにFillの必要回数を計算してロボット割り当てるx軸を変える。
+* yuusti/ジーフィル速いんだけど微妙にバグる: 正の点数を取るにgfillを加えた版。gfillはz軸方向への線分にのみ使用、x軸と長さ30で分割して均等に配分するというのをy軸ごとにやる。
+* yuusti/ハローワーク: 配置が終わって暇になった人が次に置くべきとこをクエリするやつ。労災対策はしていない。
+* yuusti/ハロワ雑魚狩りver: harmonicを使いたくないので下から置いて完成するやつだけを対象にしたやつ。10000stepでできなければ潔く死ぬ。狩るか狩られるか。
 * mkut/splattershotjr: (lightning) 全体では Grounded 状態を維持をして、分割した空間をそれぞれロボットに担当させてほぼ貪欲に構成した。
 * mkut/bamboozler14: (lightning/full) 移動経路を管理して衝突しないように制限なくロボットを飛ばして待ち時間を減らそうとしたが、労災が絶えなかった。
 * mkut/splattershot: (full) bamboozler14の経験を生かしてほどほど制約のもとでgfillに対応した。gfillの性質の考察が足りなかったので実際には1次元に絞ったcustom-splattershotを使った。

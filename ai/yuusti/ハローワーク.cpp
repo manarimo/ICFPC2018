@@ -418,6 +418,42 @@ DIR dM[] = {Z, X, Z, X, Y, Y};
 
 vector<int> tid[RMAX];
 map<int, task> findTasks(deque<task> &q) {
+    for (int x = 0; z < R; ++z) {
+        for (int z = 0; z < R; ++z) {
+            if (!field[x][y][z]) continue;
+            int y = 0;
+            while(y < R && field[x][y][z] && y < 30) ++y;
+            if (y < 10) continue;
+            tasks[id] = task{id, y, P{x, y + 1, z}, P{x, y + 1, r - 1}, set<int>(), set<int>(), set<int>(), 0, false, false};
+            auto &t = tasks[id];
+
+            for (int i = z; i < r; ++i) {
+                field[x][y][i] = id;
+                if (y > 0 && field[x][y - 1][i] > 1) {
+                    int fid = field[x][y - 1][i];
+                    tasks[fid].ceil.insert(id);
+                    t.floor.insert(fid);
+                }
+                for (int d = 0; d < 4; ++d) {
+                    int nx = x + dx[d], ny = y, nz = i + dz[d];
+                    if (in(nx, ny, nz) && field[nx][ny][nz] > 1 && field[nx][ny][nz] != id) {
+                        t.side.insert(field[nx][ny][nz]);
+                        tasks[field[nx][ny][nz]].side.insert(id);
+                    }
+                }
+            }
+            if (y == 0) {
+                q.push_back(t);
+                t.used = true;
+            }
+            z = r - 1;
+            tid[y].push_back(id);
+            id++;
+        }
+    }
+
+
+
     map<int, task> tasks;
     int id = 2;
     for (int y = 0; y < R; ++y) {
