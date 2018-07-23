@@ -905,6 +905,8 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
             pendingNodes.emplace_back(nodeId);
         }
     }
+    int retry = 0;
+    bool random = false;
     while (not pendingNodes.empty()) {
         vector<int> readyNodes = pendingNodes;
         pendingNodes.clear();
@@ -920,6 +922,9 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         map<int, command> commands;
         map<int, vector<int>> violatingInstructionIds;
         sort(readyNodes.begin(), readyNodes.end());
+        if (random) {
+            random_shuffle(readyNodes.begin(), readyNodes.end());
+        }
         for (auto &&nodeId : readyNodes) {
             auto node = instructionNodes[nodeId];
             set<position> newVolatiles;
@@ -987,110 +992,16 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
 //                    b[iid] = instructions[iid];
 //                }
 //            }
-            assert (false);  // akirame.
-
-            assert (pendingNodes.size() > 0);
-            // race condition? try fixing.
-            set<position> botLocations;
-            for (auto &&bot : bots) {
-                if (bot.active) {
-                    botLocations.insert(bot.p);
-                }
+//            assert (false);  // akirame.
+            retry += 1;
+            for (int i = 0; newSteps.size() > 0 && i < retry; ++i) {
+                newSteps.pop_back();
             }
-            bool racingResolved = false;
-            for (auto &&pendingNodeId : pendingNodes) {
-                auto &pendingNode = instructionNodes[pendingNodeId];
-                auto racingInstructionIds = violatingInstructionIds[pendingNodeId];
-
-                if (not racingInstructionIds.empty()) {
-                    set<position> raceVolatiles;
-                    set<position> racingBotLocations;
-                    for (auto &&racingInstructionId : pendingNode.instructionIds) {
-                        auto racingInstruction = instructions[racingInstructionId];
-                        auto bot = bots[racingInstruction.botId];
-                        auto subVolatiles = bot.volatileCoordinates(racingInstruction.com);
-                        raceVolatiles.insert(subVolatiles.begin(), subVolatiles.end());
-                        racingBotLocations.insert(bot.p);
-                    }
-
-                    auto botIds = state.botIdByPosition();
-                    vector<int> spillNodeIds;
-                    bool allbotsResolved = true;
-                    for (auto &&bot : bots) {
-                        if (!bot.active) {
-                            continue;
-                        }
-                        if (racingBotLocations.find(bot.p) != racingBotLocations.end()) {
-                            continue;
-                        }
-                        if (raceVolatiles.find(bot.p) == raceVolatiles.end()) {
-                            continue;
-                        }
-                        auto botId = botIds[bot.p];
-
-                        // kick this bot out of volatile boxels.
-                        // I know this is not perfect but contest finishes soon
-                        bool resolved = false;
-                        for (int delta = 1; (not resolved) && delta <= 15; ++delta) {
-                            for (int direction = 0; (not resolved) && direction < 6; ++direction) {
-                                auto smoveDelta = position(adj_dx[direction] * delta, adj_dy[direction] * delta,
-                                                           adj_dz[direction] * delta);
-                                auto destination = bot.p + smoveDelta;
-                                if (!inMemory(destination, fieldSize)) {
-                                    continue;
-                                }
-                                if (raceVolatiles.find(destination) != raceVolatiles.end()) {
-                                    continue;
-                                }
-                                // resolve!!
-                                int spillInstructionId = instructions.size();
-                                instructions.emplace_back(spillInstructionId, botId, smove(smoveDelta));
-
-                                int spillNodeId = instructionNodes.size();
-                                InstructionNode spillNode(spillNodeId, {spillInstructionId});
-                                spillNode.subsequentIds.emplace_back(pendingNodeId);
-                                pendingNode.referenceCount += 1;
-                                instructionNodes.emplace_back(spillNode);
-
-                                int revertInstructionId = instructions.size();
-                                instructions.emplace_back(revertInstructionId, botId, smove(position(0, 0, 0) - smoveDelta));
-
-                                int revertNodeId = instructionNodes.size();
-                                InstructionNode revertNode(revertNodeId, {revertInstructionId});
-                                vector<int> subsequentIds;
-                                for (auto &&nodeId : pendingNodes) {
-                                    if (nodeId == pendingNodeId) {
-                                        continue;
-                                    }
-                                    subsequentIds.emplace_back(nodeId);
-                                }
-                                for (auto &&subsequentId : subsequentIds) {
-                                    revertNode.subsequentIds.emplace_back(subsequentId);
-                                    instructionNodes[subsequentId].referenceCount += 1;
-                                }
-                                pendingNode.subsequentIds.emplace_back(revertNodeId);
-                                revertNode.referenceCount += 1;
-                                instructionNodes.emplace_back(revertNode);
-
-                                pendingNodes.emplace_back(spillNodeId);
-
-                                spillNodeIds.emplace_back(spillNodeId);
-                                cerr << "spill: " << spillNodeId << ", revert: " << revertNodeId << endl;
-                                resolved = true;
-                            }
-                        }
-                        if (not resolved) {
-                            allbotsResolved = false;
-                        }
-                    }
-                    if (allbotsResolved) {
-                        racingResolved = true;
-                        pendingNodes = spillNodeIds;
-                        break;
-                    }
-                }
+            if (retry > 5) {
+                assert (false);
             }
-            assert (racingResolved);
+            random = true;
+            continue;
         }
 
         vector<command> allCommands;
@@ -1104,6 +1015,8 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         MultiCommand multiCommand(allCommands);
         newSteps.emplace_back(state, multiCommand);
         state = update(state, multiCommand);
+
+        random = false;
     }
 
     vector<InstructionNode> unresolvedNodes;
