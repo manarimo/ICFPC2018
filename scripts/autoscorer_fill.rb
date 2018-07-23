@@ -20,7 +20,11 @@ traces['traces'].each do |trace|
 
   puts "trace_id #{trace['trace_id']}: #{trace['model_name']} by #{trace['author']}"
   nbt_file = "/tmp/autoscorer-#{Process.pid}-#{trace['trace_id']}.nbt"
-  `curl -o #{nbt_file} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/blob`
+  if trace['s3url']
+    `curl -o #{nbt_file} #{trace['s3url']}`
+  else
+    `curl -o #{nbt_file} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/blob`
+  end
 
   if trace['src_model']
     src_mdl_file = "/tmp/autoscorer-#{Process.pid}-#{trace['src_model']}.mdl"
