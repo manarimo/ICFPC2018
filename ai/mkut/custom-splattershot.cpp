@@ -3,6 +3,7 @@
 #include <sstream>
 #include <map>
 #include <set>
+#include <algorithm>
 using namespace std;
 
 struct Point {
