@@ -75,7 +75,13 @@ Nanachi
         <td>{{ trace['author'] }}</td>
         <td>{{ trace['comment'] }}</td>
         <td>{{ trace['submit_time_string'] }}</td>
-        <td><a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a></td>
+        <td>
+            {% if trace['s3url'] %}
+                <a href="{{ trace['s3url'] }}">nbt file</a>
+            {% else %}
+                <a href="{{ url_for('trace_blob', trace_id=trace['trace_id']) }}">nbt file</a>
+            {% endif %}
+        </td>
     </tr>
     {% endfor %}
     </tbody>
