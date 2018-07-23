@@ -123,7 +123,17 @@ struct region {
         }
         return internals;
     }
+
+    region normalize() {
+        auto pp1 = position(min(p1.x, p2.x), min(p1.y, p2.y), min(p1.z, p2.z));
+        auto pp2 = position(max(p1.x, p2.x), max(p1.y, p2.y), max(p1.z, p2.z));
+        return region(pp1, pp2);
+    }
 };
+
+bool operator<(const region& p1, const region& p2) {
+    return make_pair(p1.p1, p1.p2) < make_pair(p2.p1, p2.p2);
+}
 
 enum operation {
     HALT,
@@ -701,6 +711,8 @@ struct InstructionNode {
 vector<Step> eagerExecution(vector<Step> &steps) {
     vector<Step> new_steps = steps;
     for (int turn = (int)new_steps.size() - 2; turn >= 0; --turn) {
+        set<region> movedGFillRegions;
+
         for (int bot_id = 0; bot_id < new_steps[turn + 1].state.bots.size(); ++bot_id) {
             assert (new_steps[turn+1].state.activeBots().size() == new_steps[turn+1].multiCommand.commands.size());
 
@@ -721,6 +733,7 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             auto commandIds = new_steps[turn + 1].botCommandIds();
             auto command_id = commandIds[bot_id];
             auto command = new_steps[turn + 1].multiCommand.commands[command_id];
+
             if (command.op == HALT || command.op == WAIT || command.op == FLIP) {
                 continue;
             }
@@ -729,6 +742,7 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             }
             auto vcs = new_steps[turn].volatileCoordinates();
             auto bot = new_steps[turn].state.bots[bot_id];
+
             auto new_vcs = bot.volatileCoordinates(command);
             bool ok = true;
             if (command.op != FUSIONP) { // we can skip this when fusionp.
@@ -825,9 +839,11 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                     }
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
-                    for (auto &&dest : region(bot.p + command.p1, bot.p + command.p1 + command.p2).internals()) {
+                    auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
+                    for (auto &&dest : r.internals()) {
                         newState.filled[dest.x][dest.y][dest.z] = command.op == GFILL;
                     }
+                    movedGFillRegions.insert(r.normalize());
                     break;
                 }
                 default:
@@ -940,6 +956,89 @@ vector<Step> skipAllWaits(vector<Step> &steps) {
     return newSteps;
 }
 
+vector<Step> optimizeHarmony(vector<Step> &steps) {
+    vector<bool> actualHarmony;
+    vector<bool> grounded;
+
+    const int size = steps.front().state.filled.size();
+    bool previouslyFilpped = false;
+    for (int i = 0; i < steps.size(); ++i) {
+        auto &step = steps[i];
+        if (previouslyFilpped) {
+            step.state.hermony = !step.state.hermony;
+        }
+        actualHarmony.push_back(step.state.hermony);
+        auto allRegion = region(position(0, 0, 0), position(size - 1, size - 1, size - 1));
+
+        auto &filled = step.state.filled;
+        auto vis = empty_voxels(size);
+        bool allGrounded = true;
+
+        for (auto &&p : allRegion.internals()) {
+            if (!filled[p.x][p.y][p.z]) {
+                continue;
+            }
+            if (vis[p.x][p.y][p.z]) {
+                continue;
+            }
+
+            queue<position> q;
+            q.emplace(p);
+            vis[p.x][p.y][p.z] = true;
+            bool grounded = false;
+
+            while (not q.empty()) {
+                auto pos = q.front();
+                q.pop();
+                grounded |= pos.y == 0;
+
+                for (auto &&adj : step.state.adj_pos(pos)) {
+                    if (vis[adj.x][adj.y][adj.z]) {
+                        continue;
+                    }
+                    q.emplace(adj);
+                    vis[adj.x][adj.y][adj.z] = true;
+                }
+            }
+            allGrounded &= grounded;
+            if (not allGrounded) {
+                break;
+            }
+        }
+
+        grounded.push_back(allGrounded);
+
+        if (!grounded.back() && actualHarmony.back()) {
+            cerr << "DENKI KEISATSU " << i << endl;
+            command *waiting = nullptr;
+            bool optimized = false;
+            for (auto &&com : steps[i - 1].multiCommand.commands) {
+                if (com.op == FLIP) {
+                    com.op = WAIT;
+                    previouslyFilpped = !previouslyFilpped;
+                    optimized = true;
+                    break;
+                }
+                if (com.op == WAIT) {
+                    waiting = &com;
+                }
+            }
+            if (not optimized && waiting != nullptr) {
+                waiting->op = FLIP;
+                optimized = true;
+                previouslyFilpped = !previouslyFilpped;
+            }
+            if (optimized) {
+                cerr << "SAVED ENERGY!!!" << endl;
+            } else {
+                cerr << "everyone was busy..." << endl;
+            }
+        }
+    }
+
+    return steps;
+}
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         cerr << "Usage: ./bondrewd [mdl file] [asm file (optional)]" << endl;
@@ -996,6 +1095,9 @@ int main(int argc, char** argv) {
     } while (steps.size() < currentSteps || leastIteration--);
 
     cerr << "optimization completed. #turns = " << steps.size() << endl;
+//    cerr << "optimizing harmony status" << endl;
+//    steps = optimizeHarmony(steps);
+//    cerr << "harmony status optimized" << endl;
 
     vector<MultiCommand> newTurns;
     for (auto &&step : steps) {
