@@ -843,7 +843,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
                     case LMOVE: { // moving instruction
                         if (latestMovingInstructionId != -1) {
                             // comment out to skip constraint
-                            //dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
+                            dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
                         }
                         latestMovingInstructionId = instructionId;
                     }
