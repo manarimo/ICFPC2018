@@ -157,7 +157,7 @@ struct bot {
     vector<int> seeds;
     int seed;
     bool active;
-    bool working;
+    bool working, ready;
     int wid;
 
     void halt() {
@@ -600,6 +600,19 @@ int helloWork(const vector<bot> &bots, const P &dst) {
     return idx;
 }
 
+int helloWork2(const vector<bot> &bots, const P &dst) {
+    int bestD = INF, idx = -1;
+    for (int i = 0; i < bots.size(); ++i) {
+        const auto &b = bots[i];
+        if (b.working || b.ready) continue;
+        int xzd = abs(b.pos.x - dst.x) + abs(b.pos.z - dst.z);
+        if (xzd < bestD) {
+            idx = i, bestD = xzd;
+        }
+    }
+    return idx;
+}
+
 int main() {
     input();
 
@@ -686,7 +699,7 @@ int main() {
 
     int cnt = 0, curY = 1;
     map<int, int> fri;
-    int worker = SEED;
+    int worker = SEED, ready = 40;
     while (cnt < NUM) {
         cerr << cnt << '/' << NUM << endl;
         if (false) {
@@ -710,19 +723,34 @@ int main() {
             q.pop_front();
             int a = helloWork(bots, t.p1);
             bots[a].working = true; worker--;
+            if (!bots[a].ready) ready--;
             int b = helloWork(bots, t.p2);
             bots[b].working = true; worker--;
+            if (!bots[b].ready) ready--;
             dst[a] = t.p1;
             dst[b] = t.p2;
             fri[a] = b;
             fri[b] = a;
             bots[a].wid = bots[b].wid = t.id;
 
+#ifdef DBG
             cerr << "new task:" << t.id << endl;
             cerr << "assigned (" << t.p1 << ") to " << a << endl;
             cerr << "assigned (" << t.p2 << ") to " << b << endl;
-#ifdef DBG
 #endif
+        }
+
+        if (q.empty() && ready >= 2) {
+            for (auto &e : tasks) {
+                if (e.second.used) continue;
+                auto &t = e.second;
+                int a = helloWork2(bots, t.p1);
+                bots[a].ready; --ready;
+                int b = helloWork2(bots, t.p2);
+                bots[b].ready; --ready;
+                dst[a] =t.p1;
+                dst[b] = t.p2;
+            }
         }
 
         auto gfill = vector<function<bool(bot &)>>(SEED, NOP);
@@ -782,9 +810,10 @@ int main() {
                 addConnectivity(bedge, aedge, uf);
 
                 fri[a] = fri[b] = -1;
-                bots[a].working = false;
-                bots[b].working = false;
+                bots[a].working = bots[a].ready = false;
+                bots[b].working = bots[b].ready = false;
                 worker += 2;
+                ready += 2;
                 dst[a].y += 1, dst[b].y += 1;
 
                 auto &t = tasks[bots[a].wid];
@@ -851,20 +880,20 @@ int main() {
         }
 
         if (baguru || turn > 10000) {
-            cerr << "turn:" << turn << endl;
-            cerr << pcnt << ' ' << cnt << endl;
-            cerr << "bots:" << endl;
-            cerr << "tasks:" << endl;
-            for (auto &t : tasks) {
-                cerr << t.second << endl;
-                cerr << t.second.floorCnt << "/" << t.second.floor.size() << endl;
-            }
-            for (int i = 0; i < activeBots; ++i) {
-                cerr << "prv pos of     " << i << ": " << vp[i] << endl;
-                cerr << "current pos of " << i << ": " << bots[i].pos << endl;
-                cerr << "current dst of " << i << ": " << dst[i] << endl;
-                cerr << "vol["<<dst[i].x<<"]["<<dst[i].y<<"]["<<dst[i].z<<"]="<<vol[dst[i].x][dst[i].y][dst[i].z] << endl;
-            }
+//            cerr << "turn:" << turn << endl;
+//            cerr << pcnt << ' ' << cnt << endl;
+//            cerr << "bots:" << endl;
+//            cerr << "tasks:" << endl;
+//            for (auto &t : tasks) {
+//                cerr << t.second << endl;
+//                cerr << t.second.floorCnt << "/" << t.second.floor.size() << endl;
+//            }
+//            for (int i = 0; i < activeBots; ++i) {
+//                cerr << "prv pos of     " << i << ": " << vp[i] << endl;
+//                cerr << "current pos of " << i << ": " << bots[i].pos << endl;
+//                cerr << "current dst of " << i << ": " << dst[i] << endl;
+//                cerr << "vol["<<dst[i].x<<"]["<<dst[i].y<<"]["<<dst[i].z<<"]="<<vol[dst[i].x][dst[i].y][dst[i].z] << endl;
+//            }
             exit(1);
         }
 #endif
@@ -937,3 +966,4 @@ int main() {
 
     return 0;
 }
+

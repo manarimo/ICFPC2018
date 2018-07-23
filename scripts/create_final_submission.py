@@ -5,7 +5,7 @@ import sys
 
 conn = db.get_connection()
 cursor = conn.cursor(dictionary=True)
-cursor.execute("SELECT t.problem_id, p.name AS problem_name, tm.trace_id, tm.energy_autoscorer, tm.s3url "
+cursor.execute("SELECT t.problem_id, p.name AS problem_name, tm.trace_id, tm.energy_autoscorer, tm.author, tm.comment, tm.s3url "
                "FROM tbltrace_metadata tm "
                "JOIN tbltrace t ON tm.trace_id = t.id "
                "JOIN tblproblem p ON t.problem_id = p.id "
@@ -32,6 +32,10 @@ for name in names:
         blob = cursor.fetchone()['body']
         with open('tmp/' + trace['problem_name'] + '.nbt', 'bw') as f:
             f.write(blob)
+
+for key in sorted(best_traces.keys()):
+    trace = best_traces[key]
+    print("%5s%20d%25s%30s" % (key, trace['energy_autoscorer'], trace['author'], trace['comment']))
 
 print("Validate traces")
 valid = True
