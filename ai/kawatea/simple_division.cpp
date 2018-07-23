@@ -708,7 +708,7 @@ int main() {
     long long best_energy = 1e18;
     vector <command> best_traces;
     
-    for (int i = min(R / 5, MAX_B); i <= min(R, MAX_B); i++) {
+    for (int i = min(R / 4, MAX_B); i <= min(R, MAX_B); i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
@@ -731,7 +731,7 @@ int main() {
         }
     }
     
-    for (int i = min(R / 5, MAX_B); i <= min(R, MAX_B); i++) {
+    for (int i = min(R / 4, MAX_B); i <= min(R, MAX_B); i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
