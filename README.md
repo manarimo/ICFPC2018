@@ -18,6 +18,10 @@ It is also known as "Natural water quality inspector" for its characteristic tha
 * Yu Fujikake (@yuusti)
 * Shunsuke Ohashi (@pepsin_amylase)
 
+## Submission List
+[submission.txt](https://github.com/osak/ICFPC2018/blob/master/postmortem/submission.txt)
+
+
 
 ## Solvers
 * kawatea/simple_division: x 軸か z 軸でブロックの数の最大値を抑えるように空間を分割して、それぞれを独立に下から作っていく。Grounded はチェックして切り替えるが、それを維持するために他と協調したりはしない。
