@@ -40,7 +40,6 @@ template<class T> void loopRange(int end1, int end2, T f) {
 struct DisjointSet {
     vector<int> root;
     vector<int> size;
-    unordered_set<int> reverse[250 * 250 * 250];
 
     DisjointSet(int n) : root(n), size(n, 1) {
         for (int i = 0; i < n; ++i) {
@@ -50,12 +49,7 @@ struct DisjointSet {
 
     int get(int i) {
         if (root[i] == i) return i;
-        const int nr = get(root[i]);
-        if (nr != root[i]) {
-            //reverse[root[i]].erase(i);
-            reverse[nr].insert(i);
-        }
-        return root[i] = nr;
+        return root[i] = get(root[i]);
     }
 
     bool unite(int i, int j) {
@@ -83,12 +77,11 @@ struct DisjointSet {
             return false;
         }
         // Remap children
-        for (int child : reverse[i]) {
-            if (root[child] == i) {
-                root[child] = ri;
+        for(int &r : root) {
+            if (r == i) {
+                r = ri;
             }
         }
-        reverse[i].clear();
         size[ri]--;
         root[i] = i;
         size[i] = 1;
@@ -101,7 +94,6 @@ struct DisjointSet {
         for (int i = 0; i < N; ++i) {
             root[i] = i;
             size[i] = 1;
-            reverse[i].clear();
         }
     }
 };
