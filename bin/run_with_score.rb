@@ -26,7 +26,11 @@ elsif problem_id =~ /^FR/
 end
 asm_path = "#{temp_dir}/#{problem_id}.nbtasm"
 nbt_path = "#{temp_dir}/#{problem_id}.nbt"
-`bash "#{work_dir}/#{run_script}" #{input_models.join(' ')} > "#{asm_path}"`
+puts `bash "#{work_dir}/#{run_script}" #{input_models.join(' ')} > "#{asm_path}"`
+unless $?.success?
+  puts "AI execution failure"
+  exit 1
+end
 
 Dir.chdir("#{work_dir}/hissen/src")
 `javac Main.java`

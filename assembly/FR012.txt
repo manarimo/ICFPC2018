@@ -1,0 +1,92 @@
+fission 1 0 0 1
+fission 0 0 1 0
+smove 14 0 0
+fission 1 0 0 0
+smove 14 0 0
+smove 0 0 14
+fission 0 1 0 0
+smove 0 0 14
+smove 0 0 12
+smove 14 0 0
+fission 1 0 0 0
+smove 0 0 13
+smove 0 14 0
+smove 12 0 0
+smove 0 13 0
+fission 0 0 1 0
+fission 0 1 0 0
+smove 0 13 0
+smove 0 14 0
+smove 0 13 0
+smove 14 0 0
+wait
+wait
+smove 0 13 0
+wait
+smove 0 13 0
+wait
+smove 12 0 0
+smove 0 0 14
+wait
+wait
+smove 0 13 0
+wait
+wait
+wait
+wait
+smove 0 0 12
+---
+gfill 1 0 1 27 27 27
+gfill -1 0 1 -27 27 -27
+gfill -1 0 1 -27 -27 -27
+gfill 1 0 1 27 -27 -27
+gfill 1 0 1 -27 -27 27
+gfill 1 0 1 27 -27 27
+gfill 1 0 1 -27 27 27
+gfill 1 0 1 27 27 -27
+---
+wait
+wait
+smove 0 -13 0
+wait
+wait
+wait
+wait
+smove 0 0 -12
+wait
+wait
+smove 0 -13 0
+wait
+smove 0 -13 0
+wait
+smove -12 0 0
+smove 0 0 -14
+fusionp 0 0 1
+fusionp 0 1 0
+fusions 0 -1 0
+smove 0 -13 0
+smove 0 -14 0
+smove 0 -13 0
+smove -14 0 0
+fusions 0 0 -1
+fusionp 1 0 0
+smove 0 0 -13
+smove 0 -14 0
+smove -12 0 0
+smove 0 -13 0
+fusions -1 0 0
+fusionp 0 1 0
+smove 0 0 -14
+smove 0 0 -12
+smove -14 0 0
+fusions 0 -1 0
+fusionp 1 0 0
+smove -14 0 0
+smove 0 0 -14
+fusions -1 0 0
+fusionp 0 0 1
+smove -14 0 0
+fusions 0 0 -1
+fusionp 1 0 0
+fusions -1 0 0
+halt

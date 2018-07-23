@@ -421,6 +421,21 @@ int abs(const P &p) {
     return abs(p.x) + abs(p.y) + abs(p.z);
 }
 
+int calcPosScore(const set<P> &st, const P &prv, const P &nxt, const P &dst, int turn, bool end) {
+    if (end) return returnDist[nxt.x][nxt.y][nxt.z];
+
+    int sc = abs(dst - nxt);
+    if (sc == 0) return 0;
+    for (int d = 0; d < 6; ++d) {
+        int nax = nxt.x + dx[d], nay = nxt.y + dy[d], naz = nxt.z + dz[d];
+        if (!canEnter(nax, nay, naz, turn + 1)) sc += 2;
+    }
+    if (sc > 0 && prv == nxt) sc += 10;
+    if (st.count(dst)) sc += 10;
+
+    return sc;
+}
+
 void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot &)>> reserved, int &turn, bool end = false) {
     set<P> st(dsts.begin(), dsts.end());
     int n = bots.size();
@@ -446,8 +461,9 @@ void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot
 #ifdef DBG_DETAILED_MOVE
         cerr << "p: " << p << " dst:" << dst << endl;
 #endif
-        int baseScore = end ? returnDist[p.x][p.y][p.z]: abs(dst - p);
-        int scS = baseScore + 10 * end, scL = baseScore + 10 * end;
+
+        int scS = calcPosScore(st, p, p, dst, turn, end);
+        int scL = calcPosScore(st, p, p, dst, turn, end);
         P smv = {0, 0, 0};
         pair<P, P> lmv = make_pair(P{0, 0, 0}, P{0, 0, 0});
 
@@ -457,19 +473,7 @@ void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot
                 if (!canEnter(nx, ny, nz, turn)) break;
 
                 // Evaluate Smove
-                int nscS;
-                if (end) {
-                    nscS = returnDist[nx][ny][nz];
-                } else {
-                    nscS = abs(dst - P{nx, ny, nz});
-                    if (nscS > 0) {
-                        for (int d; d < 6; ++d) {
-                            int nax = nx + dx[d1], nay = ny + dy[d1], naz = nz + dz[d1];
-                            if (!canEnter(nax, nay, naz, turn + 1)) nscS += 1;
-                        }
-                        if (st.count(P{nx, ny, nz})) nscS += 10;
-                    }
-                }
+                int nscS = calcPosScore(st, p, P{nx, ny, nz}, dst, turn, end);
 #ifdef DBG_DETAILED_MOVE
                 cerr << "scS:" << scS << " nscS:" << nscS << endl;
 #endif
@@ -487,19 +491,7 @@ void moveBots(vector<bot> &bots, const vector<P> &dsts, vector<function<bool(bot
                         if (!canEnter(nnx, nny, nnz, turn - 1)) break;
 
                         // Evaluate Lmove
-                        int nscL;
-                        if (end) {
-                            nscL = returnDist[nnx][nny][nnz];
-                        } else {
-                            nscL = abs(dst - P{nnx, nny, nnz});
-                            if (nscL > 0) {
-                                for (int d; d < 6; ++d) {
-                                    int nax = nnx + dx[d1], nay = nny + dy[d1], naz = nnz + dz[d1];
-                                    if (!canEnter(nax, nay, naz, turn + 1)) nscL += 1;
-                                }
-                                if (st.count(P{nnx, nny, nnz})) nscL += 10;
-                            }
-                        }
+                        int nscL = calcPosScore(st, p, P{nnx, nny, nnz}, dst, turn, end);
 #ifdef DBG_DETAILED_MOVE
                         cerr << "scL:" << scL << " nscL:" << nscL << endl;
 #endif
@@ -709,6 +701,7 @@ int main() {
                 addConnectivity(bedge, aedge, uf);
             }
         }
+
         for (int i = 0; i < SEED; ++i) {
             if (busy.count(i)) continue;
 #ifdef DBG
@@ -724,7 +717,36 @@ int main() {
             break;
         }
 
+#ifdef DBG
+        int pcnt = cnt;
+        vector<P> vp(activeBots);
+        for (int i = 0; i < activeBots; ++i) {
+            vp[i] = bots[i].pos;
+        }
+#endif
+
         moveBots(bots, dst, gfill, turn);
+
+#ifdef DBG
+        vector<P> va(activeBots);
+        bool baguru = pcnt == cnt;
+        for (int i = 0; i < activeBots; ++i) {
+            baguru &= bots[i].pos == va[i];
+        }
+
+        if (baguru || turn % 1000 == 0) {
+            cerr << "baguru:" << baguru << endl;
+            cerr << "turn:" << turn << endl;
+            cerr << pcnt << ' ' << cnt << endl;
+            for (int i = 0; i < activeBots; ++i) {
+                cerr << "prv pos of     " << i << ": " << vp[i] << endl;
+                cerr << "current pos of " << i << ": " << bots[i].pos << endl;
+                cerr << "current dst of " << i << ": " << dst[i] << endl;
+                cerr << "vol["<<dst[i].x<<"]["<<dst[i].y<<"["<<dst[i].z<<"]="<<vol[dst[i].x][dst[i].y][dst[i].z] << endl;
+            }
+            if (baguru) exit(1);
+        }
+#endif
     }
 
 

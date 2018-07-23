@@ -16,8 +16,6 @@ import api
 app = Flask(__name__, static_url_path="/static")
 app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024
 CORS(app)
-connection = get_connection()
-
 
 @app.route("/favicon.ico")
 def favicon():
@@ -31,6 +29,7 @@ def assets(path):
 
 @app.route("/api/pending_traces")
 def pending_traces():
+    connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT p.name AS problem_name, trace_id, energy, author, comment, "
                    "src.name AS src_model, tgt.name AS tgt_model, p.type AS problem_type, tbltrace_metadata.s3url "
@@ -47,11 +46,12 @@ def pending_traces():
 
 @app.route("/best_traces", methods=["GET", "POST"])
 def best_traces():
+    connection = get_connection()
     traces = {}
     references = {}
     cursor = connection.cursor(dictionary=True)
     lightning = request.args.get('lightning') == 'true'
-    autoscorer = request.args.get('autoscorer') == 'true'
+    autoscorer = True
     cursor.execute("SELECT p.name AS problem_name, trace_id, tbltrace_metadata.energy, energy_autoscorer, author, comment,"
                    "  r.energy AS ranking_energy, r.name AS ranking_name "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
@@ -120,6 +120,7 @@ def trace_register():
 
 @app.route("/traces/<int:trace_id>/blob")
 def trace_blob(trace_id: int):
+    connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace_id,))
     blob = cursor.fetchone()["body"]
@@ -133,6 +134,7 @@ def trace_blob(trace_id: int):
 
 @app.route("/traces/<int:trace_id>")
 def trace_summary(trace_id: int):
+    connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
         "SELECT tbltrace.id AS id, tblproblem.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
@@ -150,6 +152,7 @@ def trace_summary(trace_id: int):
 
 @app.route("/traces/<int:trace_id>/update-autoscorer", methods=["POST"])
 def update_autoscorer(trace_id: int):
+    connection = get_connection()
     try:
         if 'energy' in request.form:
             energy = int(request.form["energy"])
@@ -170,6 +173,7 @@ def update_autoscorer(trace_id: int):
 
 @app.route("/models/<name>/blob")
 def model_blob(name: str):
+    connection = get_connection()
     cursor = connection.cursor(dictionary=True)
     cursor.execute("SELECT body FROM tblmodel WHERE name=%s", (name,))
     blob = cursor.fetchone()["body"]
@@ -183,6 +187,7 @@ def model_blob(name: str):
 
 @app.route("/models/<name>")
 def model_summary(name: str):
+    connection = get_connection()
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
         "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
@@ -213,6 +218,7 @@ def model_summary(name: str):
 
 @app.route("/model_list")
 def model_list():
+    connection = get_connection()
     get_list_sql = "SELECT m.name AS name, meta.r AS r, meta.fill_count AS fill_count, "\
           "meta.num_components AS num_components, "\
           "meta.largest_component_size AS largest_component_size, "\
@@ -229,6 +235,7 @@ def model_list():
 
 @app.route("/problem_list")
 def problem_list():
+    connection = get_connection()
     lightning = request.args.get('lightning') == 'true'
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
@@ -245,6 +252,7 @@ def problem_list():
 
 @app.route("/problems/<name>")
 def problem_summary(name: str):
+    connection = get_connection()
     tracecursor = connection.cursor(dictionary=True)
     tracecursor.execute(
         "SELECT tm.trace_id, tm.energy, tm.author, tm.comment, tm.submit_time, tm.energy_autoscorer "
@@ -271,6 +279,7 @@ def problem_summary(name: str):
 
 @app.route("/rankings/update", methods=['POST'])
 def update_ranking():
+    connection = get_connection()
     payload = request.json
     problem_names = [e['problem_name'] for e in payload]
     cursor = connection.cursor(dictionary=True)

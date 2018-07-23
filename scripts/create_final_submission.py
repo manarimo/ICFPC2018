@@ -1,5 +1,6 @@
 import db
 import os
+import subprocess
 
 conn = db.get_connection()
 cursor = conn.cursor(dictionary=True)
@@ -30,3 +31,24 @@ for name in names:
         blob = cursor.fetchone()['body']
         with open('tmp/' + trace['problem_name'] + '.nbt', 'bw') as f:
             f.write(blob)
+
+print("Validate traces")
+for key in sorted(best_traces.keys()):
+    source_file = 'assets/problemsF/%s_src.mdl' % (key,)
+    target_file = 'assets/problemsF/%s_tgt.mdl' % (key,)
+    trace_file = '%s.nbt' % (key,)
+    if key[0:2] == 'FA':
+        command = ['./autoscorer/autoscorer', target_file, trace_file]
+    elif key[0:2] == 'FD':
+        command = ['./autoscorer/autoscorer', '--disassembly', source_file, trace_file]
+    else:
+        command = ['./autoscorer/autoscorer', '--reassembly', source_file, target_file, trace_file]
+
+    print("Validating %s" % (key,))
+    result = subprocess.run(command, capture_output=True)
+    energy = int(result.stdout)
+    if energy == best_traces[key]['energy_autoscorer']:
+        print("Success")
+    else:
+        print("Failed. Expected score=%d but got %d" % (best_traces[key]['energy_autoscorer'], energy))
+        print(result.stderr)
