@@ -1,5 +1,7 @@
 require 'json'
 require 'pp'
+require 'timeout'
+require 'open3'
 
 if ARGV.index('--skip-check')
   puts "Skip check mode"
@@ -37,21 +39,35 @@ traces['traces'].each do |trace|
 
   if src_mdl_file && tgt_mdl_file
     puts "This is reassembly problem"
-    score = `../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}`
+    command = "../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --reassembly #{src_mdl_file} #{tgt_mdl_file} #{nbt_file}"
   elsif src_mdl_file
     puts "This is disassembly problem"
-    score = `../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --disassembly #{src_mdl_file} #{nbt_file}`
+    command = "../autoscorer/autoscorer #{(skip_check && trace['author'] == 'icfpc2018') ? '--aperture-science-dangerously-skip-sanity-check' : ''} --disassembly #{src_mdl_file} #{nbt_file}"
   else
     puts "This is assembly problem"
-    score = `../autoscorer/autoscorer #{tgt_mdl_file} #{nbt_file}`
+    command = "../autoscorer/autoscorer #{tgt_mdl_file} #{nbt_file}"
   end
 
-  if $?.success?
-    puts "#{trace['model_name']}: #{score}"
-    puts `curl -X POST -F energy=#{score.to_i} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
+  stdin, stdout, thr = Open3.popen2(command)
+  arr = IO.select([stdout], [], [], (ENV['TIMEOUT'] || 180).to_i)
+  if arr
+    out = stdout.read
+    status = thr.value
+    if status.success?
+      score = out.to_i
+      puts "#{trace['model_name']}: #{score}"
+      puts `curl -X POST -F energy=#{score} http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
+    else
+      puts "#{trace['model_name']}: Failed"
+      puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
+    end
   else
-    puts "#{trace['model_name']}: Failed"
-    puts `curl -X POST -F failed=true http://nanachi.kadingel.osak.jp/traces/#{trace['trace_id']}/update-autoscorer`
+    puts "autoscorer timed out. Skip evaluating this problem for this time."
+    Process.kill('TERM', thr[:pid])
+    begin
+      Process.wait(thr[:pid])
+    rescue
+    end
   end
 end
 
