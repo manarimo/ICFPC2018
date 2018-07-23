@@ -132,7 +132,7 @@ struct Reservation {
     }
 
     void reserve(const Point& pos, int time) {
-        // cerr << "a " <<  pos << ":" << time << endl;
+//        cerr << "a " <<  pos << ":" << time << endl;
         while (time >= reserved.size()) {
             reserved.push_back(set<Point>());
         }
@@ -473,7 +473,7 @@ struct NextTask {
     NextTask(const Point& a, const Point& b, bool gfill, vector<char>& active, vector<Point>& corners, vector<set<Point> >& goals) : a(a), b(b), gfill(gfill), active(active), corners(corners), goals(goals) {}
 };
 
-NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<vector<vector<char> > >& currentModel, vector<Point>& tasks, int& fromIdx) {
+NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<vector<vector<char> > >& currentModel, vector<Point>& tasks, int& fromIdx, vector<Point>& pos) {
     while (fromIdx < tasks.size() && tasks[fromIdx].access(currentModel)) fromIdx++;
     if (fromIdx == tasks.size()) {
         return NextTask();
@@ -518,16 +518,22 @@ NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<ve
                 break;
             }
         }
+
+        if (limit == 0 && pos[1] == tasks[fromIdx]) {
+            active[1] = true;
+            active[0] = false;
+        }
+
         vector<Point> ps = corners(lower, upper);
         for (int i = 0; i < 2; i++) {
             goals.push_back(set<Point>());
             for (int j = 0; j < NUM_ND; j++) {
                 Point p = ps[i] + nds[j];
-                if (p.inside(W, R, R) && p.access(zone)) {
+                if (p.inside(W, R, R) && p.access(zone) && (p != pos[1 - i] || active[1 - i])) {
                     goals[i].insert(p);
                 }
             }
-            if (!goals[i].size()) {
+            if (active[i] && !goals[i].size()) {
                 dead = true;
                 break;
             }
@@ -542,7 +548,7 @@ NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<ve
             }
             continue;
         }
-        return NextTask(lower, upper, active[1], active, ps, goals);
+        return NextTask(lower, upper, limit > 0, active, ps, goals);
     }
 }
 
@@ -556,7 +562,7 @@ vector<vector<vector<string> > > computePath(const int W, vector<vector<vector<c
     int taskId = 0;
     while (taskId < tasks.size()) {
         Reservation reservation(pos);
-        NextTask task = next_task(W, model, currentModel, tasks, taskId);
+        NextTask task = next_task(W, model, currentModel, tasks, taskId, pos);
         if (task.a.x == -1) break;
 
         vector<vector<string> > team_commands(2);
@@ -621,7 +627,7 @@ int main() {
     read_input();
     cerr << "読み込みおわり" << endl;
 
-    N = min(20, R / 2);
+    N = min(20, R);
     // とりあえずxで雑に分割
     vector<int> x_range(N + 1);
     for (int i = 0; i < N; i++) {
