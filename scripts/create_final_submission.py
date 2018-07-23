@@ -33,6 +33,10 @@ for name in names:
         with open('tmp/' + trace['problem_name'] + '.nbt', 'bw') as f:
             f.write(blob)
 
+for key in sorted(best_traces.keys()):
+    trace = best_traces[key]
+    print("%5s%20d%25s%30s" % (key, trace['energy_autoscorer'], trace['author'], trace['comment']))
+
 print("Validate traces")
 valid = True
 for key in sorted(best_traces.keys()):

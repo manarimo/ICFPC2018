@@ -14,5 +14,6 @@ URL="http://kadingel.osak.jp/job/%E8%AA%B0%E3%81%8B%E3%81%AEAI%E3%81%B6%E3%82%93
 #for i in {001..186}; do
 for i in {187..199}; do
     echo $i
-    curl "${URL}?PROBLEM_ID=FD${i}&AUTHOR=kawateamylase&COMMENT=シヴァ神と黎明卿ボンドルドが夢のコラボ&token=a&RUN_SCRIPT=ai/amylase/run_kawatea.sh"
+    #curl "${URL}?PROBLEM_ID=FD${i}&AUTHOR=kawateamylase&COMMENT=シヴァ神と黎明卿ボンドルドが夢のコラボ&token=a&RUN_SCRIPT=ai/amylase/run_kawatea.sh"
+    curl "${URL}?PROBLEM_ID=FA${i}&AUTHOR=yuustiamylase&COMMENT=ぷる酒家&token=a&RUN_SCRIPT=ai/amylase/run_yuusti3.sh"
 done
