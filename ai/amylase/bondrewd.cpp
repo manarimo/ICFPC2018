@@ -124,6 +124,31 @@ struct region {
         return internals;
     }
 
+    vector<position> boundingBox() {
+        vector<position> result;
+        auto n = normalize();
+
+        auto up = region(position(n.p1.x, n.p2.y + 1, n.p1.z), position(n.p2.x, n.p2.y + 1, n.p2.z)).internals();
+        result.insert(result.end(), up.begin(), up.end());
+
+        auto bottom = region(position(n.p1.x, n.p1.y - 1, n.p1.z), position(n.p2.x, n.p1.y - 1, n.p2.z)).internals();
+        result.insert(result.end(), bottom.begin(), bottom.end());
+
+        auto left = region(position(n.p2.x + 1, n.p1.y, n.p1.z), position(n.p2.x + 1, n.p2.y, n.p2.z)).internals();
+        result.insert(result.end(), left.begin(), left.end());
+
+        auto right = region(position(n.p1.x - 1, n.p1.y, n.p1.z), position(n.p1.x - 1, n.p2.y, n.p2.z)).internals();
+        result.insert(result.end(), right.begin(), right.end());
+
+        auto front = region(position(n.p1.x, n.p1.y, n.p1.z - 1), position(n.p2.x, n.p2.y, n.p1.z - 1)).internals();
+        result.insert(result.end(), front.begin(), front.end());
+
+        auto back = region(position(n.p1.x, n.p1.y, n.p2.z + 1), position(n.p2.x, n.p2.y, n.p2.z + 1)).internals();
+        result.insert(result.end(), back.begin(), back.end());
+
+        return result;
+    }
+
     region normalize() {
         auto pp1 = position(min(p1.x, p2.x), min(p1.y, p2.y), min(p1.z, p2.z));
         auto pp2 = position(max(p1.x, p2.x), max(p1.y, p2.y), max(p1.z, p2.z));
@@ -737,15 +762,24 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             if (command.op == HALT || command.op == WAIT || command.op == FLIP) {
                 continue;
             }
-            if (command.op == GFILL || command.op == GVOID) {
+            if (command.op == GVOID) {
                 continue; // temporal fix
             }
+
             auto vcs = new_steps[turn].volatileCoordinates();
             auto bot = new_steps[turn].state.bots[bot_id];
 
+            bool absoluteGFillOK = false;
+            if (command.op == GFILL) {
+                auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
+                if (movedGFillRegions.find(r) != movedGFillRegions.end()) {
+                    absoluteGFillOK = true;
+                }
+            }
+
             auto new_vcs = bot.volatileCoordinates(command);
             bool ok = true;
-            if (command.op != FUSIONP) { // we can skip this when fusionp.
+            if (command.op != FUSIONP && (not absoluteGFillOK)) { // we can skip this when fusionp.
                 for (auto &&vc : new_vcs) {
                     if (vc != bot.p && vcs[vc.x][vc.y][vc.z]) {
                         ok = false;
@@ -754,7 +788,7 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 }
             }
 
-            if (not ok) {
+            if (not ok && not absoluteGFillOK) {
                 // vc collision
                 continue;
             }
@@ -834,12 +868,35 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                     break;
                 case GFILL:
                 case GVOID: {
-                    if (not newState.hermony) {
-                        break;
+                    auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
+
+                    if (not absoluteGFillOK) {
+                        if (not newState.hermony) {
+                            if (command.op == GVOID) {
+                                continue;
+                            }
+                            bool ok = true;
+                            for (auto &&voxel : r.boundingBox()) {
+                                if (not inMemory(voxel, newState.filled.size())) {
+                                    continue;
+                                }
+                                if (voxel.y == 0) {
+                                    continue;
+                                }
+                                if (newState.filled[voxel.x][voxel.y][voxel.z]) {
+                                    continue;
+                                }
+                                ok = false;
+                                break;
+                            }
+                            if (not ok) {
+                                continue;
+                            }
+                        }
                     }
+
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
-                    auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
                     for (auto &&dest : r.internals()) {
                         newState.filled[dest.x][dest.y][dest.z] = command.op == GFILL;
                     }
