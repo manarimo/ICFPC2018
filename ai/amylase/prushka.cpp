@@ -1,4 +1,4 @@
-// Bondrewd: postprocessing optimizer
+// Prushka: dependency optimizer
 // !!! assuming that input commands are valid.
 
 #include <cstdio>
@@ -1395,6 +1395,8 @@ int main(int argc, char** argv) {
         state = update(state, turns[i]);
     }
     cerr << "calculated state history" << endl;
+
+    steps = dependencyOptimization(steps);
 
     int leastIteration = 4;
     int currentSteps;
