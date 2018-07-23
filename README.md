@@ -1,4 +1,4 @@
-## ICFPC 2018 Lightning Division Submission of Team manarimo
+## ICFPC 2018 Submission of Team manarimo
 
 ## マナリモ
 ナリモ科の藻。東北地方以北に分布し、水質のきれいな湖にしか生息しないという性質から「自然の水質管理官」と呼ばれる。
@@ -33,6 +33,8 @@
 * mkut/splattershot: (full) bamboozler14の経験を生かしてほどほど制約のもとでgfillに対応した。gfillの性質の考察が足りなかったので実際には1次元に絞ったcustom-splattershotを使った。
 * kawatea: solved problems by hand (ai/kawatea/hands)
 * y3: solved problems by hand (assembly)
+* amylase/bondrewd: 後処理器その1。とにかく命令を前に寄せて圧縮。数%から最大10%程度の効果があった。
+* amylase/prushka: 後処理器その2。命令の依存性を解析して矛盾の内容に再構成する。競合の発生を対処できず死亡。
 
 ## Tools
 * autoscorer：評価器。自動的に採点するからオートスコアラー。Voidの実装がつらかった。
@@ -40,7 +42,8 @@
 * model-analyzer
 * official-tools：公式から落としてきて魔改造されたブラウザ評価器。
 * saverwing：公式のモデルビューワからdata URIで飛んでくる画像を保存してサムネイルにするやつ。保存するからSaver Wing。
-* nanachi
+* nanachi: なんでもwebapp。よく死んでたけど再起動すると直る。アビスがもたらした不死の力かな？？
+* mitty: 逆アセンブラ
 
 
 ## Note
