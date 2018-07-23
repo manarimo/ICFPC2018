@@ -26,6 +26,10 @@ Nanachi
 </tbody>
 </table>
 <div>
-    <a href="{{ url_for('trace_blob', trace_id=trace['id']) }}">Download nbt file</a>
+    {% if trace['s3url'] %}
+        <a href="{{ trace['s3url'] }}">Download nbt file (This is actually a raw nbt file regardless of extension)</a>
+    {% else %}
+        <a href="{{ url_for('trace_blob', trace_id=trace['id']) }}">Download nbt file</a>
+    {% endif %}
 </div>
 {% endblock %}
