@@ -19,6 +19,10 @@ for trace in cursor:
     else:
         best_traces[prob_name] = trace
 
+for key in best_traces.keys():
+    if key not in second_best_traces:
+        second_best_traces[key] = best_traces[key]
+
 best_energy = 0
 for trace in best_traces.values():
     best_energy += trace['energy_autoscorer']
