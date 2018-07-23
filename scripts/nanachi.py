@@ -57,7 +57,7 @@ def best_traces():
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "
                    "JOIN tblproblem p ON p.id = tbltrace.problem_id "
                    "LEFT OUTER JOIN tblofficial_ranking r ON p.id = r.problem_id "
-                   "WHERE p.is_lightning = %s",
+                   "WHERE p.is_lightning = %s AND p.dummy_problem = FALSE",
                    (lightning,))
     key = "energy_autoscorer" if autoscorer else "energy"
     def energy_order(energy):
