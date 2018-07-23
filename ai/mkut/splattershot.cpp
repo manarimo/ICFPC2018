@@ -88,8 +88,10 @@ struct Reservation {
     vector<set<Point> > reserved;
     vector<pair<Point, int> > eternal;
     Reservation(const vector<Point>& initPos) {
+        reserved.push_back(set<Point>());
         for (int i = 0; i < initPos.size(); i++) {
             eternal.push_back(make_pair(initPos[i], 0));
+            reserved[0].insert(initPos[i]);
         }
     }
 
@@ -126,7 +128,6 @@ struct Reservation {
             cerr << "Reservation failed" << endl;
             exit(1);
         }
-        // cerr << "b " << pos << ":" << time << endl;
         reserved[time].insert(pos);
     }
 
@@ -484,7 +485,8 @@ NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<ve
         vector<char> active(8); active[0] = true;
         Point upper = tasks[fromIdx];
         Point lower = tasks[fromIdx];
-        for (; ; ) {
+        int limit = 0;
+        for (; limit < 30; ) {
             Point cand = upper + Point(0, 0, 1);
             if (!cand.inside(W, R, R) || !cand.access(model)) {
                 break;
@@ -492,8 +494,9 @@ NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<ve
             upper = cand;
             additional.insert(cand);
             active[7] = true;
+            limit++;
         }
-        for (; ; ) {
+        for (; limit < 30; ) {
             Point cand = lower + Point(0, 0, -1);
             if (!cand.inside(W, R, R) || !cand.access(model)) {
                 break;
@@ -501,6 +504,7 @@ NextTask next_task(const int W, vector<vector<vector<char> > >& model, vector<ve
             lower = cand;
             additional.insert(cand);
             active[7] = true;
+            limit++;
         }
         vector<vector<vector<char> > > zone = alive_zone(W, currentModel, additional);
         vector<set<Point> > goals(8);
