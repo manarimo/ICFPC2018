@@ -22,10 +22,10 @@ names = sorted(best_traces.keys())
 for name in names:
     trace = best_traces[name]
     if trace['s3url']:
-        print('%s: %s' % (name, trace['s3url']))
-        os.system('curl -o tmp/%s.nbt %s' % (trace['problem_name'], trace['s3url']))
+        print('%s: %s (energy=%s)' % (name, trace['s3url'].strip(), trace['energy_autoscorer']))
+        os.system('curl -o tmp/%s.nbt %s' % (trace['problem_name'], trace['s3url'].strip()))
     else:
-        print('%s: blob(trace_id=%d)' % (name, trace['trace_id']))
+        print('%s: blob(trace_id=%d, energy=%s)' % (name, trace['trace_id'], trace['energy_autoscorer']))
         cursor.execute("SELECT body FROM tbltrace WHERE id=%s", (trace['trace_id'],))
         blob = cursor.fetchone()['body']
         with open('tmp/' + trace['problem_name'] + '.nbt', 'bw') as f:
