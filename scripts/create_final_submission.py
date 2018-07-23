@@ -38,7 +38,7 @@ valid = True
 for key in sorted(best_traces.keys()):
     source_file = 'assets/problemsF/%s_src.mdl' % (key,)
     target_file = 'assets/problemsF/%s_tgt.mdl' % (key,)
-    trace_file = '%s.nbt' % (key,)
+    trace_file = 'tmp/%s.nbt' % (key,)
     if key[0:2] == 'FA':
         command = ['./autoscorer/autoscorer', target_file, trace_file]
     elif key[0:2] == 'FD':
