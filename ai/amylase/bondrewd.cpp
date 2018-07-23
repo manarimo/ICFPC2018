@@ -1095,9 +1095,9 @@ int main(int argc, char** argv) {
     } while (steps.size() < currentSteps || leastIteration--);
 
     cerr << "optimization completed. #turns = " << steps.size() << endl;
-    cerr << "optimizing harmony status" << endl;
-    steps = optimizeHarmony(steps);
-    cerr << "harmony status optimized" << endl;
+//    cerr << "optimizing harmony status" << endl;
+//    steps = optimizeHarmony(steps);
+//    cerr << "harmony status optimized" << endl;
 
     vector<MultiCommand> newTurns;
     for (auto &&step : steps) {
