@@ -47,7 +47,7 @@ for key in sorted(best_traces.keys()):
         command = ['./autoscorer/autoscorer', '--reassembly', source_file, target_file, trace_file]
 
     print("Validating %s" % (key,))
-    result = subprocess.run(command, stdout=subprocess.PIPE)
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     energy = int(result.stdout)
     if energy == best_traces[key]['energy_autoscorer']:
         print("Success")
