@@ -717,14 +717,17 @@ int main() {
             break;
         }
 
+#ifdef DBG
         int pcnt = cnt;
         vector<P> vp(activeBots);
         for (int i = 0; i < activeBots; ++i) {
             vp[i] = bots[i].pos;
         }
+#endif
 
         moveBots(bots, dst, gfill, turn);
 
+#ifdef DBG
         vector<P> va(activeBots);
         bool baguru = pcnt == cnt;
         for (int i = 0; i < activeBots; ++i) {
@@ -743,6 +746,7 @@ int main() {
             }
             if (baguru) exit(1);
         }
+#endif
     }
 
 
