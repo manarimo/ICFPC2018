@@ -138,7 +138,7 @@ def trace_summary(trace_id: int):
     cursor = connection.cursor(dictionary=True)
     cursor.execute(
         "SELECT tbltrace.id AS id, tblproblem.name AS `name`, tm.author AS author, tm.comment AS comment, tm.energy AS energy,"
-        "tm.submit_time AS submit_time, tm.energy_autoscorer AS energy_autoscorer "
+        "tm.submit_time AS submit_time, tm.energy_autoscorer AS energy_autoscorer, tm.s3url AS s3url "
         "FROM tbltrace JOIN tblproblem ON tbltrace.problem_id = tblproblem.id "
         "JOIN tbltrace_metadata tm ON tbltrace.id = tm.trace_id "
         "WHERE tbltrace.id=%s",
