@@ -31,6 +31,8 @@
 * mkut/splattershotjr: (lightning) 全体では Grounded 状態を維持をして、分割した空間をそれぞれロボットに担当させてほぼ貪欲に構成した。
 * mkut/bamboozler14: (lightning/full) 移動経路を管理して衝突しないように制限なくロボットを飛ばして待ち時間を減らそうとしたが、労災が絶えなかった。
 * mkut/splattershot: (full) bamboozler14の経験を生かしてほどほど制約のもとでgfillに対応した。gfillの性質の考察が足りなかったので実際には1次元に絞ったcustom-splattershotを使った。
+* kawatea: solved problems by hand (ai/kawatea/hands)
+* y3: solved problems by hand (assembly)
 
 ## Tools
 * autoscorer
