@@ -72,4 +72,4 @@ for problem in cursor.fetchall():
     os.system('cat asm.nbt >> %s' % (outfile,))
 
     digest, url = submit.upload_to_s3(Path(outfile))
-    os.system('curl -X POST -F author=osak -F name=%s -F comment=combiner -F s3url="%s" "http://nanachi.kadingel.osak.jp/traces/register"' % (problem['name'], url))
+    os.system('curl -X POST -F author=osak -F name=%s -F comment=combiner_final -F s3url="%s" "http://nanachi.kadingel.osak.jp/traces/register"' % (problem['name'], url))
