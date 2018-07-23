@@ -300,8 +300,8 @@ vector<vector<string> > computePath(const int R, const int W, vector<PointD> tas
 bool field[256][256][256]; // x, y, z
 int dist[256][256][256];
 int sum[256][256][256];
-int dp_x[256][21][2];
-int dp_z[256][21][2];
+int dp_x[256][41][2];
+int dp_z[256][41][2];
 int voxels_x[256][256];
 int voxels_z[256][256];
 
@@ -326,7 +326,7 @@ int main() {
         }
     }
 
-    int N = min(20, R);
+    int N = min(40, R);
 
     cerr << "読み込みおわり" << endl;
 
