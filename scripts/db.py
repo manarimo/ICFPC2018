@@ -10,7 +10,8 @@ def get_config():
             "password": "manarimo",
             "port": 3306,
             "database": "manarimodb",
-            "pool_size": 32
+            "pool_size": 32,
+            "pool_name": "nanachi"
         }
     elif const.env == 'dev':
         return {
