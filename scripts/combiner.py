@@ -13,6 +13,8 @@ def find_best_trace(problem_ids):
     best_disasm_trace_id = None
     best_disasm_energy = None
     for row in cursor:
+        if not row['energy_autoscorer']:
+            continue
         if best_disasm_energy is None:
             best_disasm_trace_id = row['trace_id']
             best_disasm_energy = row['energy_autoscorer']
@@ -44,6 +46,9 @@ for problem in cursor.fetchall():
         print("No corresponding FD exists. Skipping")
         continue
     best_disasm_trace = find_best_trace(ids)
+    if not best_disasm_trace:
+        print("No FD run with positive score. Skipping")
+        continue
     disasm_url = trace_url(best_disasm_trace)
     print(best_disasm_trace)
 
@@ -53,6 +58,9 @@ for problem in cursor.fetchall():
         print("No corresponding FA exists. Skipping")
         continue
     best_asm_trace = find_best_trace(ids)
+    if not best_asm_trace:
+        print("No FA run with positive score. Skipping")
+        continue
     asm_url = trace_url(best_asm_trace)
     print(best_asm_trace)
     cursor2.close()
