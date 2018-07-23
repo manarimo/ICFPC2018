@@ -119,7 +119,7 @@ class UnionFind {
 };
 
 const int MAX_R = 250;
-const int MAX_B = 20;
+const int MAX_B = 40;
 unsigned char buffer[MAX_R * MAX_R * MAX_R / 8];
 int R;
 bool hermonics;
@@ -708,7 +708,7 @@ int main() {
     long long best_energy = 1e18;
     vector <command> best_traces;
     
-    for (int i = min(R / 10, MAX_B); i <= MAX_B; i++) {
+    for (int i = min(R / 10, MAX_B); i <= min(R, MAX_B); i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
@@ -731,7 +731,7 @@ int main() {
         }
     }
     
-    for (int i = min(R / 10, MAX_B); i <= MAX_B; i++) {
+    for (int i = min(R / 10, MAX_B); i <= min(R, MAX_B); i++) {
         int last = R, b = i;
         vector <rectangle> bots;
         vector <int> voxels;
