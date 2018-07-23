@@ -1,6 +1,7 @@
 import db
 import os
 import subprocess
+import sys
 
 conn = db.get_connection()
 cursor = conn.cursor(dictionary=True)
@@ -33,6 +34,7 @@ for name in names:
             f.write(blob)
 
 print("Validate traces")
+valid = True
 for key in sorted(best_traces.keys()):
     source_file = 'assets/problemsF/%s_src.mdl' % (key,)
     target_file = 'assets/problemsF/%s_tgt.mdl' % (key,)
@@ -45,10 +47,14 @@ for key in sorted(best_traces.keys()):
         command = ['./autoscorer/autoscorer', '--reassembly', source_file, target_file, trace_file]
 
     print("Validating %s" % (key,))
-    result = subprocess.run(command, capture_output=True)
+    result = subprocess.run(command, stdout=subprocess.PIPE)
     energy = int(result.stdout)
     if energy == best_traces[key]['energy_autoscorer']:
         print("Success")
     else:
         print("Failed. Expected score=%d but got %d" % (best_traces[key]['energy_autoscorer'], energy))
         print(result.stderr)
+        valid = False
+
+if not valid:
+    sys.exit(1)
