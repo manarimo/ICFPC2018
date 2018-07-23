@@ -5,7 +5,7 @@ import sys
 
 conn = db.get_connection()
 cursor = conn.cursor(dictionary=True)
-cursor.execute("SELECT t.problem_id, p.name AS problem_name, tm.trace_id, tm.energy_autoscorer, tm.s3url "
+cursor.execute("SELECT t.problem_id, p.name AS problem_name, tm.trace_id, tm.energy_autoscorer, tm.author, tm.comment, tm.s3url "
                "FROM tbltrace_metadata tm "
                "JOIN tbltrace t ON tm.trace_id = t.id "
                "JOIN tblproblem p ON t.problem_id = p.id "
