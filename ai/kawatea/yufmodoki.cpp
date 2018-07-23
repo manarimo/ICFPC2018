@@ -751,7 +751,7 @@ int main() {
             break;
         }
         
-        if (i - mutations.back() == 2) mutations.push_back(i);
+        if (i - mutations.back() == 3) mutations.push_back(i);
     }
     
     for (int i = 0; i < mutations.size(); i++) {
