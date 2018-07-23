@@ -35,11 +35,11 @@
 * y3: solved problems by hand (assembly)
 
 ## Tools
-* autoscorer
+* autoscorer：評価器。自動的に採点するからオートスコアラー。Voidの実装がつらかった。
 * hissen: trace assembler
 * model-analyzer
-* official-tools
-* saverwing 
+* official-tools：公式から落としてきて魔改造されたブラウザ評価器。
+* saverwing：公式のモデルビューワからdata URIで飛んでくる画像を保存してサムネイルにするやつ。保存するからSaver Wing。
 * nanachi
 
 
