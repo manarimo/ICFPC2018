@@ -25,7 +25,7 @@ for trace in best_traces.values():
 best_traces.clear()
 
 second_best_energy = 0
-for trace in second_best_traces.value():
+for trace in second_best_traces.values():
     second_best_energy += trace['energy_autoscorer']
 print("Best: ", best_energy)
 print("Scnd: ", second_best_energy)
