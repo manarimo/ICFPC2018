@@ -1,4 +1,4 @@
-// Bondrewd: postprocessing optimizer
+// Prushka: dependency optimizer
 // !!! assuming that input commands are valid.
 
 #include <cstdio>
@@ -123,42 +123,7 @@ struct region {
         }
         return internals;
     }
-
-    vector<position> boundingBox() {
-        vector<position> result;
-        auto n = normalize();
-
-        auto up = region(position(n.p1.x, n.p2.y + 1, n.p1.z), position(n.p2.x, n.p2.y + 1, n.p2.z)).internals();
-        result.insert(result.end(), up.begin(), up.end());
-
-        auto bottom = region(position(n.p1.x, n.p1.y - 1, n.p1.z), position(n.p2.x, n.p1.y - 1, n.p2.z)).internals();
-        result.insert(result.end(), bottom.begin(), bottom.end());
-
-        auto left = region(position(n.p2.x + 1, n.p1.y, n.p1.z), position(n.p2.x + 1, n.p2.y, n.p2.z)).internals();
-        result.insert(result.end(), left.begin(), left.end());
-
-        auto right = region(position(n.p1.x - 1, n.p1.y, n.p1.z), position(n.p1.x - 1, n.p2.y, n.p2.z)).internals();
-        result.insert(result.end(), right.begin(), right.end());
-
-        auto front = region(position(n.p1.x, n.p1.y, n.p1.z - 1), position(n.p2.x, n.p2.y, n.p1.z - 1)).internals();
-        result.insert(result.end(), front.begin(), front.end());
-
-        auto back = region(position(n.p1.x, n.p1.y, n.p2.z + 1), position(n.p2.x, n.p2.y, n.p2.z + 1)).internals();
-        result.insert(result.end(), back.begin(), back.end());
-
-        return result;
-    }
-
-    region normalize() {
-        auto pp1 = position(min(p1.x, p2.x), min(p1.y, p2.y), min(p1.z, p2.z));
-        auto pp2 = position(max(p1.x, p2.x), max(p1.y, p2.y), max(p1.z, p2.z));
-        return region(pp1, pp2);
-    }
 };
-
-bool operator<(const region& p1, const region& p2) {
-    return make_pair(p1.p1, p1.p2) < make_pair(p2.p1, p2.p2);
-}
 
 enum operation {
     HALT,
@@ -733,11 +698,342 @@ struct InstructionNode {
     InstructionNode(int _id, vector<int> ids): id(_id), instructionIds(ids), subsequentIds(), referenceCount(0) {}
 };
 
+vector<Step> dependencyOptimization(vector<Step> &steps) {
+    cerr << "steps before dependency optimization: " << steps.size() << endl;
+
+    // step 1: generate dependency graph.
+    // step 1-1: assign id to instructions
+    // step 1-2: analyze dependency/synchronization
+    vector<Instruction> instructions;
+    vector<pair<int, int>> synchronizationConstraints;
+    vector<pair<int, int>> dependencyConstraints;  // earlier first, later second
+    map<int, vector<int>> botInstructions;
+    map<int, vector<int>> fillingInstructionsByTime;
+    map<int, int> fissionConstraintSources;
+
+    int time = 0;
+    for (auto &&step : steps) {
+        auto bots = step.state.bots;
+        auto botIdsByPosition = step.state.botIdByPosition();
+        map<int, int> instructionIdByBotId;
+
+        for (auto &&c : step.botCommands()) {
+            int botId = c.first;
+            command com = c.second;
+            if (com.op == WAIT) {
+                continue;
+            }
+            auto instructionId = (int) instructions.size();
+            instructions.emplace_back(instructionId, botId, com);
+            botInstructions[botId].emplace_back(instructionId);
+            instructionIdByBotId[botId] = instructionId;
+
+            switch (com.op) {
+                case FLIP:
+                case FILL:
+                case VOID:
+                case GFILL:
+                case GVOID:
+                    fillingInstructionsByTime[time].emplace_back(instructionId);
+                default:
+                    break;
+            }
+
+            auto bot = bots[botId];
+
+            if (com.op == FISSION) {
+                int subBotId = bot.seeds.front();
+                fissionConstraintSources[subBotId] = instructionId;
+            }
+
+            if (fissionConstraintSources.find(botId) != fissionConstraintSources.end()) {
+                dependencyConstraints.emplace_back(fissionConstraintSources[botId], instructionId);
+            }
+
+            if (com.op == FUSIONP || com.op == FUSIONS) {
+                auto opponentPosition = bot.p + com.p1;
+                assert (botIdsByPosition.find(opponentPosition) != botIdsByPosition.end());
+                auto opponentBotId = botIdsByPosition[opponentPosition];
+
+                if (instructionIdByBotId.find(opponentBotId) != instructionIdByBotId.end()) {
+                    auto opponentInstructionId = instructionIdByBotId[opponentBotId];
+                    synchronizationConstraints.emplace_back(instructionId, opponentInstructionId);
+                }
+            }
+        }
+        time++;
+    }
+
+    vector<int> representativeFillingInstruction;
+    for (auto &&timeAndInstructions : fillingInstructionsByTime) {
+        auto instructionIds = timeAndInstructions.second;
+        representativeFillingInstruction.emplace_back(instructionIds.front());
+
+        for (int i = 1; i < instructionIds.size(); ++i) {
+            synchronizationConstraints.emplace_back(instructionIds[i - 1], instructionIds[i]);
+        }
+    }
+    for (int i = 1; i < representativeFillingInstruction.size(); ++i) {
+        dependencyConstraints.emplace_back(representativeFillingInstruction[i - 1],
+                                                representativeFillingInstruction[i]);
+    }
+
+    for (auto &&botInstruction : botInstructions) {
+        auto instructionIds = botInstruction.second;  // ordered by time.
+
+        // fusions/halt constraints + location constraints
+        int terminatingInstructionId = -1;
+        for (int i = instructionIds.size() - 1; i >= 0 ; --i) {
+            int instructionId = instructionIds[i];
+            if (terminatingInstructionId != -1) {
+                dependencyConstraints.emplace_back(instructionId, terminatingInstructionId);
+            }
+
+            auto operation = instructions[instructionId].com.op;
+            if (operation == HALT || operation == FUSIONS) {
+                terminatingInstructionId = instructionId;
+            }
+        }
+
+        // location constraints
+        vector<int> previousLocationDependentInstructionIds;
+        vector<int> previousMovingInstructionIds;
+        for (auto &&instructionId : instructionIds) {
+            switch (instructions[instructionId].com.op) {
+                case HALT:
+                case FISSION:
+                case FILL:
+                case VOID:
+                case FUSIONP:
+                case FUSIONS:
+                case GFILL:
+                case GVOID: { // location dependent instruction
+                    for (auto &&previousMovingInstructionId : previousMovingInstructionIds) {
+                        dependencyConstraints.emplace_back(previousMovingInstructionId, instructionId);
+                    }
+                    previousLocationDependentInstructionIds.emplace_back(instructionId);
+                }
+                    break;
+                case SMOVE:
+                case LMOVE: { // moving instruction
+                    for (auto &&previousLocationDependentInstructionId : previousLocationDependentInstructionIds) {
+                        dependencyConstraints.emplace_back(previousLocationDependentInstructionId, instructionId);
+                    }
+                    previousMovingInstructionIds.emplace_back(instructionId);
+                }
+                    break;
+                case WAIT:
+                case FLIP:
+                    break;
+            }
+
+            int latestSeedManipulatingInstructionId = -1;
+            int latestMovingInstructionId = -1;
+            for (auto &&instructionId : instructionIds) {
+                switch (instructions[instructionId].com.op) {
+                    case FISSION:
+                    case FUSIONP: { // seed manipulating instruction
+                        if (latestSeedManipulatingInstructionId != -1) {
+                            dependencyConstraints.emplace_back(latestSeedManipulatingInstructionId, instructionId);
+                        }
+                        latestSeedManipulatingInstructionId = instructionId;
+                    }
+                        break;
+                    case SMOVE:
+                    case LMOVE: { // moving instruction
+                        if (latestMovingInstructionId != -1) {
+                            // comment out to skip constraint
+                            dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
+                        }
+                        latestMovingInstructionId = instructionId;
+                    }
+                        break;
+                    case WAIT:
+                    default:
+                        break;
+                }
+            }
+        }
+    }
+
+    cerr << "instructions: " << instructions.size() << endl;
+    cerr << "dependency constraints: " << dependencyConstraints.size() << endl;
+    cerr << "synchronization constraints: " << synchronizationConstraints.size() << endl;
+
+    // step 1-3: generate graph nodes using sync constraints
+    UnionFind unionFind((int) instructions.size());
+    for (auto &&constraint : synchronizationConstraints) {
+        unionFind.unify(constraint.first, constraint.second);
+    }
+    map<int, vector<int>> instructionIdGroups;
+    for (int id = 0; id < instructions.size(); ++id) {
+        instructionIdGroups[unionFind.find(id)].emplace_back(id);
+    }
+    vector<InstructionNode> instructionNodes;
+    map<int, int> unionToNodeId;
+    for (auto &&instructionIdGroup : instructionIdGroups) {
+        auto groupId = (int) instructionNodes.size();
+        instructionNodes.emplace_back(groupId, instructionIdGroup.second);
+        unionToNodeId[instructionIdGroup.first] = groupId;
+    }
+    cerr << "dependency graph nodes: " << instructionNodes.size() << endl;
+
+    // step 1-4: add edges on graph.
+    set<pair<int, int>> nodeDependencies;
+    for (auto &&dependency : dependencyConstraints) {
+        int from = unionToNodeId[unionFind.find(dependency.first)];
+        int to = unionToNodeId[unionFind.find(dependency.second)];
+        assert (from != to);
+        nodeDependencies.emplace(from, to);
+    }
+    cerr << "effective dependency constraints (graph edges): " << nodeDependencies.size() << endl;
+    for (auto &&nodeDependency : nodeDependencies) {
+        int from = nodeDependency.first;
+        int to = nodeDependency.second;
+
+        instructionNodes[from].subsequentIds.emplace_back(to);
+        instructionNodes[to].referenceCount += 1;
+    }
+
+    // step 2: greedily assign instructions if possible.
+    vector<Step> newSteps;
+    State state = steps.front().state;
+    const int fieldSize = state.filled.size();
+    vector<int> pendingNodes;
+    for (int nodeId = 0; nodeId < instructionNodes.size(); ++nodeId) {
+        if (instructionNodes[nodeId].referenceCount == 0) {
+            pendingNodes.emplace_back(nodeId);
+        }
+    }
+    int retry = 0;
+    bool random = false;
+    while (not pendingNodes.empty()) {
+        vector<int> readyNodes = pendingNodes;
+        pendingNodes.clear();
+
+        auto bots = state.bots;
+        auto volatiles = empty_voxels(fieldSize);
+        for (auto &&bot : bots) {
+            if (bot.active) {
+                volatiles[bot.p.x][bot.p.y][bot.p.z] = true;
+            }
+        }
+
+        map<int, command> commands;
+        map<int, vector<int>> violatingInstructionIds;
+        sort(readyNodes.begin(), readyNodes.end());
+        if (random) {
+            random_shuffle(readyNodes.begin(), readyNodes.end());
+        }
+        for (auto &&nodeId : readyNodes) {
+            auto node = instructionNodes[nodeId];
+            set<position> newVolatiles;
+            set<position> botPositions;
+            bool ok = true;
+            for (auto &&instructionId : node.instructionIds) {
+                auto instruction = instructions[instructionId];
+                auto bot = bots[instruction.botId];
+                auto vols = bot.volatileCoordinates(instruction.com);
+                assert (bot.active);
+                newVolatiles.insert(vols.begin(), vols.end());
+                botPositions.insert(bot.p);
+                ok &= commands.find(instruction.botId) == commands.end();
+
+                bool violation = false;
+                if (instruction.com.op == FUSIONP || instruction.com.op == FUSIONS) {
+                    // we can skip this. probably.
+                    continue;
+                }
+
+                if (instruction.com.op == SMOVE || instruction.com.op == LMOVE) {
+                    for (auto &&pathPosition : bot.volatileCoordinates(instruction.com)) {
+                        assert (inMemory(pathPosition, fieldSize));
+                        bool alreadyFilled =state.filled[pathPosition.x][pathPosition.y][pathPosition.z];
+                        ok &= !alreadyFilled;
+                        violation |= alreadyFilled;
+                    }
+                }
+                for (auto &&vol : vols) {
+                    if ((botPositions.find(vol) == botPositions.end()) && volatiles[vol.x][vol.y][vol.z]) {
+                        ok = false;
+                        violation = true;
+                    }
+                }
+                if (violation) {
+                    ok = false;
+                    violatingInstructionIds[nodeId].emplace_back(instructionId);
+                }
+            }
+            if (ok) {
+                for (auto &&vol : newVolatiles) {
+                    volatiles[vol.x][vol.y][vol.z] = true;
+                }
+                for (auto &&instructionId : node.instructionIds) {
+                    auto instruction = instructions[instructionId];
+                    commands[instruction.botId] = instruction.com;
+                }
+                for (auto &&subsequentId : node.subsequentIds) {
+                    auto& subsequentNode = instructionNodes[subsequentId];
+                    if (--subsequentNode.referenceCount == 0) {
+                        pendingNodes.emplace_back(subsequentId);
+                    }
+                }
+            } else {
+                pendingNodes.emplace_back(nodeId);
+            }
+        }
+
+        if (commands.empty()) {
+//            vector<InstructionNode> a;
+//            map<int, Instruction> b;
+//            for (auto &&node : pendingNodes) {
+//                a.emplace_back(instructionNodes[node]);
+//                for (auto &&iid : instructionNodes[node].instructionIds) {
+//                    b[iid] = instructions[iid];
+//                }
+//            }
+//            assert (false);  // akirame.
+            retry += 1;
+            for (int i = 0; newSteps.size() > 0 && i < retry; ++i) {
+                newSteps.pop_back();
+            }
+            if (retry > 5) {
+                assert (false);
+            }
+            random = true;
+            continue;
+        }
+
+        vector<command> allCommands;
+        for (auto &&botId : state.activeBotIds()) {
+            if (commands.find(botId) != commands.end()) {
+                allCommands.emplace_back(commands[botId]);
+            } else {
+                allCommands.emplace_back(wait());
+            }
+        }
+        MultiCommand multiCommand(allCommands);
+        newSteps.emplace_back(state, multiCommand);
+        state = update(state, multiCommand);
+
+        random = false;
+    }
+
+    vector<InstructionNode> unresolvedNodes;
+    for (auto &&instructionNode : instructionNodes) {
+        assert (instructionNode.referenceCount >= 0);
+        if (instructionNode.referenceCount > 0) {
+            unresolvedNodes.emplace_back(instructionNode);
+        }
+    }
+    assert (unresolvedNodes.size() == 0);
+    cerr << "steps after dependency optimization: " << newSteps.size() << endl;
+    return newSteps;
+}
+
 vector<Step> eagerExecution(vector<Step> &steps) {
     vector<Step> new_steps = steps;
     for (int turn = (int)new_steps.size() - 2; turn >= 0; --turn) {
-        set<region> movedGFillRegions;
-
         for (int bot_id = 0; bot_id < new_steps[turn + 1].state.bots.size(); ++bot_id) {
             assert (new_steps[turn+1].state.activeBots().size() == new_steps[turn+1].multiCommand.commands.size());
 
@@ -758,28 +1054,17 @@ vector<Step> eagerExecution(vector<Step> &steps) {
             auto commandIds = new_steps[turn + 1].botCommandIds();
             auto command_id = commandIds[bot_id];
             auto command = new_steps[turn + 1].multiCommand.commands[command_id];
-
             if (command.op == HALT || command.op == WAIT || command.op == FLIP) {
                 continue;
             }
-            if (command.op == GVOID) {
+            if (command.op == GFILL || command.op == GVOID) {
                 continue; // temporal fix
             }
-
             auto vcs = new_steps[turn].volatileCoordinates();
             auto bot = new_steps[turn].state.bots[bot_id];
-
-            bool absoluteGFillOK = false;
-            if (command.op == GFILL) {
-                auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
-                if (movedGFillRegions.find(r) != movedGFillRegions.end()) {
-                    absoluteGFillOK = true;
-                }
-            }
-
             auto new_vcs = bot.volatileCoordinates(command);
             bool ok = true;
-            if (command.op != FUSIONP && (not absoluteGFillOK)) { // we can skip this when fusionp.
+            if (command.op != FUSIONP) { // we can skip this when fusionp.
                 for (auto &&vc : new_vcs) {
                     if (vc != bot.p && vcs[vc.x][vc.y][vc.z]) {
                         ok = false;
@@ -788,7 +1073,7 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 }
             }
 
-            if (not ok && not absoluteGFillOK) {
+            if (not ok) {
                 // vc collision
                 continue;
             }
@@ -826,17 +1111,8 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                 case FILL:
                 case VOID: {
                     auto dest = bot.p + command.p1;
-                    if (not newState.hermony) {
-                        if (command.op == VOID) {
-                            break;
-                        }
-                        bool ok = dest.y == 0;
-                        for (auto &&adj_po : newState.adj_pos(dest)) {
-                            ok |= newState.filled[adj_po.x][adj_po.y][adj_po.z];
-                        }
-                        if (not ok) {
-                            break;
-                        }
+                    if (not newState.hermony) { // todo: use ground state for this case.
+                        break;
                     }
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
@@ -868,39 +1144,14 @@ vector<Step> eagerExecution(vector<Step> &steps) {
                     break;
                 case GFILL:
                 case GVOID: {
-                    auto r = region(bot.p + command.p1, bot.p + command.p1 + command.p2);
-
-                    if (not absoluteGFillOK) {
-                        if (not newState.hermony) {
-                            if (command.op == GVOID) {
-                                continue;
-                            }
-                            bool ok = true;
-                            for (auto &&voxel : r.boundingBox()) {
-                                if (not inMemory(voxel, newState.filled.size())) {
-                                    continue;
-                                }
-                                if (voxel.y == 0) {
-                                    continue;
-                                }
-                                if (newState.filled[voxel.x][voxel.y][voxel.z]) {
-                                    continue;
-                                }
-                                ok = false;
-                                break;
-                            }
-                            if (not ok) {
-                                continue;
-                            }
-                        }
+                    if (not newState.hermony) {
+                        break;
                     }
-
                     new_steps[turn].multiCommand.commands[prevCommandId] = command;
                     new_steps[turn + 1].multiCommand.commands[command_id] = wait();
-                    for (auto &&dest : r.internals()) {
+                    for (auto &&dest : region(bot.p + command.p1, bot.p + command.p1 + command.p2).internals()) {
                         newState.filled[dest.x][dest.y][dest.z] = command.op == GFILL;
                     }
-                    movedGFillRegions.insert(r.normalize());
                     break;
                 }
                 default:
@@ -1013,89 +1264,6 @@ vector<Step> skipAllWaits(vector<Step> &steps) {
     return newSteps;
 }
 
-vector<Step> optimizeHarmony(vector<Step> &steps) {
-    vector<bool> actualHarmony;
-    vector<bool> grounded;
-
-    const int size = steps.front().state.filled.size();
-    bool previouslyFilpped = false;
-    for (int i = 0; i < steps.size(); ++i) {
-        auto &step = steps[i];
-        if (previouslyFilpped) {
-            step.state.hermony = !step.state.hermony;
-        }
-        actualHarmony.push_back(step.state.hermony);
-        auto allRegion = region(position(0, 0, 0), position(size - 1, size - 1, size - 1));
-
-        auto &filled = step.state.filled;
-        auto vis = empty_voxels(size);
-        bool allGrounded = true;
-
-        for (auto &&p : allRegion.internals()) {
-            if (!filled[p.x][p.y][p.z]) {
-                continue;
-            }
-            if (vis[p.x][p.y][p.z]) {
-                continue;
-            }
-
-            queue<position> q;
-            q.emplace(p);
-            vis[p.x][p.y][p.z] = true;
-            bool grounded = false;
-
-            while (not q.empty()) {
-                auto pos = q.front();
-                q.pop();
-                grounded |= pos.y == 0;
-
-                for (auto &&adj : step.state.adj_pos(pos)) {
-                    if (vis[adj.x][adj.y][adj.z]) {
-                        continue;
-                    }
-                    q.emplace(adj);
-                    vis[adj.x][adj.y][adj.z] = true;
-                }
-            }
-            allGrounded &= grounded;
-            if (not allGrounded) {
-                break;
-            }
-        }
-
-        grounded.push_back(allGrounded);
-
-        if (!grounded.back() && actualHarmony.back()) {
-            cerr << "DENKI KEISATSU " << i << endl;
-            command *waiting = nullptr;
-            bool optimized = false;
-            for (auto &&com : steps[i - 1].multiCommand.commands) {
-                if (com.op == FLIP) {
-                    com.op = WAIT;
-                    previouslyFilpped = !previouslyFilpped;
-                    optimized = true;
-                    break;
-                }
-                if (com.op == WAIT) {
-                    waiting = &com;
-                }
-            }
-            if (not optimized && waiting != nullptr) {
-                waiting->op = FLIP;
-                optimized = true;
-                previouslyFilpped = !previouslyFilpped;
-            }
-            if (optimized) {
-                cerr << "SAVED ENERGY!!!" << endl;
-            } else {
-                cerr << "everyone was busy..." << endl;
-            }
-        }
-    }
-
-    return steps;
-}
-
 int main(int argc, char** argv) {
     if (argc < 2) {
         cerr << "Usage: ./bondrewd [mdl file] [asm file (optional)]" << endl;
@@ -1141,6 +1309,8 @@ int main(int argc, char** argv) {
     }
     cerr << "calculated state history" << endl;
 
+    steps = dependencyOptimization(steps);
+
     int leastIteration = 4;
     int currentSteps;
     do {
@@ -1152,9 +1322,6 @@ int main(int argc, char** argv) {
     } while (steps.size() < currentSteps || leastIteration--);
 
     cerr << "optimization completed. #turns = " << steps.size() << endl;
-//    cerr << "optimizing harmony status" << endl;
-//    steps = optimizeHarmony(steps);
-//    cerr << "harmony status optimized" << endl;
 
     vector<MultiCommand> newTurns;
     for (auto &&step : steps) {

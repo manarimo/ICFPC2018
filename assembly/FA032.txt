@@ -1,0 +1,656 @@
+smove 14 0 0
+smove 0 0 14
+fission 1 0 0 1
+fission 0 0 1 0
+fission 0 0 1 0
+fission 0 1 0 3
+wait
+wait
+wait
+lmove -1 0 0 0 3 0
+lmove 1 0 0 0 3 0
+lmove 1 0 0 0 3 0
+lmove -1 0 0 0 3 0
+fission 1 0 0 1
+smove 1 0 0
+smove -1 0 0
+smove -1 0 0
+smove 1 0 0
+fission 0 0 1 0
+fission 0 0 1 0
+---
+wait
+wait
+wait
+wait
+gfill 0 -1 0 1 0 1
+gfill 0 -1 0 -1 0 1
+gfill 0 -1 0 -1 0 -1
+gfill 0 -1 0 1 0 -1
+wait
+wait
+wait
+wait
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+wait
+wait
+wait
+wait
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+wait
+wait
+wait
+wait
+gfill 0 -1 0 3 0 3
+gfill 0 -1 0 -3 0 3
+gfill 0 -1 0 -3 0 -3
+gfill 0 -1 0 3 0 -3
+wait
+wait
+wait
+wait
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+wait
+wait
+wait
+wait
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+wait
+wait
+wait
+wait
+gfill 0 -1 0 5 0 5
+gfill 0 -1 0 -5 0 5
+gfill 0 -1 0 -5 0 -5
+gfill 0 -1 0 5 0 -5
+gvoid 0 -1 0 1 0 1
+gvoid 0 -1 0 -1 0 1
+gvoid 0 -1 0 -1 0 -1
+gvoid 0 -1 0 1 0 -1
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 7 0 7
+gfill 0 -1 0 -7 0 7
+gfill 0 -1 0 -7 0 -7
+gfill 0 -1 0 7 0 -7
+gvoid 0 -1 0 3 0 3
+gvoid 0 -1 0 -3 0 3
+gvoid 0 -1 0 -3 0 -3
+gvoid 0 -1 0 3 0 -3
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 9 0 9
+gfill 0 -1 0 -9 0 9
+gfill 0 -1 0 -9 0 -9
+gfill 0 -1 0 9 0 -9
+gvoid 0 -1 0 5 0 5
+gvoid 0 -1 0 -5 0 5
+gvoid 0 -1 0 -5 0 -5
+gvoid 0 -1 0 5 0 -5
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 11 0 11
+gfill 0 -1 0 -11 0 11
+gfill 0 -1 0 -11 0 -11
+gfill 0 -1 0 11 0 -11
+gvoid 0 -1 0 7 0 7
+gvoid 0 -1 0 -7 0 7
+gvoid 0 -1 0 -7 0 -7
+gvoid 0 -1 0 7 0 -7
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 13 0 13
+gfill 0 -1 0 -13 0 13
+gfill 0 -1 0 -13 0 -13
+gfill 0 -1 0 13 0 -13
+gvoid 0 -1 0 9 0 9
+gvoid 0 -1 0 -9 0 9
+gvoid 0 -1 0 -9 0 -9
+gvoid 0 -1 0 9 0 -9
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 15 0 15
+gfill 0 -1 0 -15 0 15
+gfill 0 -1 0 -15 0 -15
+gfill 0 -1 0 15 0 -15
+gvoid 0 -1 0 11 0 11
+gvoid 0 -1 0 -11 0 11
+gvoid 0 -1 0 -11 0 -11
+gvoid 0 -1 0 11 0 -11
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 17 0 17
+gfill 0 -1 0 -17 0 17
+gfill 0 -1 0 -17 0 -17
+gfill 0 -1 0 17 0 -17
+gvoid 0 -1 0 13 0 13
+gvoid 0 -1 0 -13 0 13
+gvoid 0 -1 0 -13 0 -13
+gvoid 0 -1 0 13 0 -13
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 19 0 19
+gfill 0 -1 0 -19 0 19
+gfill 0 -1 0 -19 0 -19
+gfill 0 -1 0 19 0 -19
+gvoid 0 -1 0 15 0 15
+gvoid 0 -1 0 -15 0 15
+gvoid 0 -1 0 -15 0 -15
+gvoid 0 -1 0 15 0 -15
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 21 0 21
+gfill 0 -1 0 -21 0 21
+gfill 0 -1 0 -21 0 -21
+gfill 0 -1 0 21 0 -21
+gvoid 0 -1 0 17 0 17
+gvoid 0 -1 0 -17 0 17
+gvoid 0 -1 0 -17 0 -17
+gvoid 0 -1 0 17 0 -17
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 23 0 23
+gfill 0 -1 0 -23 0 23
+gfill 0 -1 0 -23 0 -23
+gfill 0 -1 0 23 0 -23
+gvoid 0 -1 0 19 0 19
+gvoid 0 -1 0 -19 0 19
+gvoid 0 -1 0 -19 0 -19
+gvoid 0 -1 0 19 0 -19
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 25 0 25
+gfill 0 -1 0 -25 0 25
+gfill 0 -1 0 -25 0 -25
+gfill 0 -1 0 25 0 -25
+gvoid 0 -1 0 21 0 21
+gvoid 0 -1 0 -21 0 21
+gvoid 0 -1 0 -21 0 -21
+gvoid 0 -1 0 21 0 -21
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+gfill 0 -1 0 27 0 27
+gfill 0 -1 0 -27 0 27
+gfill 0 -1 0 -27 0 -27
+gfill 0 -1 0 27 0 -27
+gvoid 0 -1 0 23 0 23
+gvoid 0 -1 0 -23 0 23
+gvoid 0 -1 0 -23 0 -23
+gvoid 0 -1 0 23 0 -23
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 25 0 25
+gfill 0 -1 0 -25 0 25
+gfill 0 -1 0 -25 0 -25
+gfill 0 -1 0 25 0 -25
+gvoid 0 -1 0 21 0 21
+gvoid 0 -1 0 -21 0 21
+gvoid 0 -1 0 -21 0 -21
+gvoid 0 -1 0 21 0 -21
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 23 0 23
+gfill 0 -1 0 -23 0 23
+gfill 0 -1 0 -23 0 -23
+gfill 0 -1 0 23 0 -23
+gvoid 0 -1 0 19 0 19
+gvoid 0 -1 0 -19 0 19
+gvoid 0 -1 0 -19 0 -19
+gvoid 0 -1 0 19 0 -19
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 21 0 21
+gfill 0 -1 0 -21 0 21
+gfill 0 -1 0 -21 0 -21
+gfill 0 -1 0 21 0 -21
+gvoid 0 -1 0 17 0 17
+gvoid 0 -1 0 -17 0 17
+gvoid 0 -1 0 -17 0 -17
+gvoid 0 -1 0 17 0 -17
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 19 0 19
+gfill 0 -1 0 -19 0 19
+gfill 0 -1 0 -19 0 -19
+gfill 0 -1 0 19 0 -19
+gvoid 0 -1 0 15 0 15
+gvoid 0 -1 0 -15 0 15
+gvoid 0 -1 0 -15 0 -15
+gvoid 0 -1 0 15 0 -15
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 17 0 17
+gfill 0 -1 0 -17 0 17
+gfill 0 -1 0 -17 0 -17
+gfill 0 -1 0 17 0 -17
+gvoid 0 -1 0 13 0 13
+gvoid 0 -1 0 -13 0 13
+gvoid 0 -1 0 -13 0 -13
+gvoid 0 -1 0 13 0 -13
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 15 0 15
+gfill 0 -1 0 -15 0 15
+gfill 0 -1 0 -15 0 -15
+gfill 0 -1 0 15 0 -15
+gvoid 0 -1 0 11 0 11
+gvoid 0 -1 0 -11 0 11
+gvoid 0 -1 0 -11 0 -11
+gvoid 0 -1 0 11 0 -11
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 13 0 13
+gfill 0 -1 0 -13 0 13
+gfill 0 -1 0 -13 0 -13
+gfill 0 -1 0 13 0 -13
+gvoid 0 -1 0 9 0 9
+gvoid 0 -1 0 -9 0 9
+gvoid 0 -1 0 -9 0 -9
+gvoid 0 -1 0 9 0 -9
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 11 0 11
+gfill 0 -1 0 -11 0 11
+gfill 0 -1 0 -11 0 -11
+gfill 0 -1 0 11 0 -11
+gvoid 0 -1 0 7 0 7
+gvoid 0 -1 0 -7 0 7
+gvoid 0 -1 0 -7 0 -7
+gvoid 0 -1 0 7 0 -7
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 9 0 9
+gfill 0 -1 0 -9 0 9
+gfill 0 -1 0 -9 0 -9
+gfill 0 -1 0 9 0 -9
+gvoid 0 -1 0 5 0 5
+gvoid 0 -1 0 -5 0 5
+gvoid 0 -1 0 -5 0 -5
+gvoid 0 -1 0 5 0 -5
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 7 0 7
+gfill 0 -1 0 -7 0 7
+gfill 0 -1 0 -7 0 -7
+gfill 0 -1 0 7 0 -7
+gvoid 0 -1 0 3 0 3
+gvoid 0 -1 0 -3 0 3
+gvoid 0 -1 0 -3 0 -3
+gvoid 0 -1 0 3 0 -3
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 5 0 5
+gfill 0 -1 0 -5 0 5
+gfill 0 -1 0 -5 0 -5
+gfill 0 -1 0 5 0 -5
+gvoid 0 -1 0 1 0 1
+gvoid 0 -1 0 -1 0 1
+gvoid 0 -1 0 -1 0 -1
+gvoid 0 -1 0 1 0 -1
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+smove 0 2 0
+smove 0 2 0
+smove 0 2 0
+smove 0 2 0
+smove 0 0 1
+smove 0 0 1
+smove 0 0 -1
+smove 0 0 -1
+gfill 0 -1 0 1 0 1
+gfill 0 -1 0 -1 0 1
+gfill 0 -1 0 -1 0 -1
+gfill 0 -1 0 1 0 -1
+gfill 0 -1 0 3 0 3
+gfill 0 -1 0 -3 0 3
+gfill 0 -1 0 -3 0 -3
+gfill 0 -1 0 3 0 -3
+wait
+wait
+wait
+wait
+lmove 1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove -1 0 0 0 1 0
+lmove 1 0 0 0 1 0
+fusionp 0 0 -1
+fusionp 0 0 -1
+fusionp 0 0 1
+fusionp 0 0 1
+fusions 0 0 1
+fusions 0 0 1
+fusions 0 0 -1
+fusions 0 0 -1
+fusionp 0 0 1
+fusionp 0 0 1
+fusions 0 0 -1
+fusions 0 0 -1
+fusionp 1 0 0
+fusions -1 0 0
+smove -14 0 0
+smove 0 0 -14
+smove 0 -14 0
+smove 0 -13 0
+halt
