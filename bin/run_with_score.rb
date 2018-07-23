@@ -27,7 +27,7 @@ end
 asm_path = "#{temp_dir}/#{problem_id}.nbtasm"
 nbt_path = "#{temp_dir}/#{problem_id}.nbt"
 puts `bash "#{work_dir}/#{run_script}" #{input_models.join(' ')} > "#{asm_path}"`
-unless $?.succees?
+unless $?.succeess?
   puts "AI execution failure"
   exit 1
 end
