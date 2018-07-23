@@ -51,7 +51,7 @@ def best_traces():
     references = {}
     cursor = connection.cursor(dictionary=True)
     lightning = request.args.get('lightning') == 'true'
-    autoscorer = request.args.get('autoscorer') == 'true'
+    autoscorer = True
     cursor.execute("SELECT p.name AS problem_name, trace_id, tbltrace_metadata.energy, energy_autoscorer, author, comment,"
                    "  r.energy AS ranking_energy, r.name AS ranking_name "
                    "FROM tbltrace_metadata JOIN tbltrace on trace_id = tbltrace.id "

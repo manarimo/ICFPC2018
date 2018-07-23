@@ -382,7 +382,7 @@ struct State {
         ds.unite(hashCoord(p1), ground);
     }
 
-    void fill(const Coord &p, bool isFill = true) {
+    void fill(const Coord &p, bool isFill = true, bool gvoid = false) {
         assert(isValidPoint(p));
         if (isFill) {
             if (field[p.x][p.y][p.z] == false) {
@@ -402,7 +402,7 @@ struct State {
         } else {
             field[p.x][p.y][p.z] = false;
             --filled;
-            if (!skipSanityCheck) {
+            if (!skipSanityCheck && !gvoid) {
                 if (!ds.remove(hashCoord(p)) || !stillConnected(p)) {
                     needReground = true;
                 }
@@ -425,12 +425,16 @@ struct State {
         }
         if (targets.size() <= 1) return true;
 
+        int step = 0;
         q.push_back(*targets.begin());
         visited.insert(*targets.begin());
         targets.erase(targets.begin());
         while (!q.empty()) {
             const Coord cur = q.front();
             q.pop_front();
+            if (++step > 40) {
+                break;
+            };
 
             if (targets.size() == 0) {
                 return true;
@@ -883,7 +887,7 @@ struct GFillCommand : public Command {
                         if (isFill) {
                             state.energy += 6;
                         } else {
-                            state.fill(c, false);
+                            state.fill(c, false, true);
                             state.energy -= 12;
                         }
                     } else {
@@ -897,6 +901,9 @@ struct GFillCommand : public Command {
                 });
             });
         });
+        if (!isFill) {
+            state.needReground = true;
+        }
     }
 
     virtual ostream& print(ostream &os) const {
