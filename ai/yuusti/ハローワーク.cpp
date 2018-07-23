@@ -581,7 +581,7 @@ int main() {
     while (activeBots < SEED) {
         auto fission = vector<function<bool(bot &)>>(SEED, NOP);
 
-        for (int i = SEED; i >= 0; --i) {
+        for (int i = SEED - 1; i >= 0; --i) {
             if (!bots[i].active) continue;
             if (bots[i].seed <= 1) continue;
             auto &p = bots[i].pos;
@@ -759,6 +759,7 @@ int main() {
             }
             break;
         }
+#define EXIT_WHEN_STUCK
 #ifdef EXIT_WHEN_STUCK
         // exit when stuck
         int pcnt = cnt;
@@ -776,7 +777,7 @@ int main() {
             baguru &= bots[i].pos == va[i];
         }
 
-        if (baguru || turn > R*R*R) {
+        if (baguru || turn > 10000) {
             cerr << "turn:" << turn << endl;
             cerr << pcnt << ' ' << cnt << endl;
             for (int i = 0; i < activeBots; ++i) {
@@ -844,10 +845,17 @@ int main() {
         }
 
         moveBots(bots, dst, f, turn, true);
+#ifdef EXIT_WHEN_STUCK
+        if (turn > 10000) {
+            exit(1);
+        }
+#endif
     }
 
     bots[0].halt();
     cerr << "fusion end" << endl;
+    cerr << "total turn: " << turn << endl;
 
     return 0;
 }
+
