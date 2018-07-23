@@ -841,8 +841,8 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
                     case SMOVE:
                     case LMOVE: { // moving instruction
                         if (latestMovingInstructionId != -1) {
-                            // skip constraint
-                            // dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
+                            // comment out to skip constraint
+                            dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
                         }
                         latestMovingInstructionId = instructionId;
                     }
@@ -972,7 +972,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         }
 
         if (commands.empty()) {
-            assert (false);  // akirame.
+            // assert (false);  // akirame.
 
             assert (pendingNodes.size() > 0);
             // race condition? try fixing.
@@ -1041,7 +1041,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
 
                                 int revertNodeId = instructionNodes.size();
                                 InstructionNode revertNode(revertNodeId, {revertInstructionId});
-                                vector<int> subsequentIds(pendingNode.subsequentIds);
+                                vector<int> subsequentIds;
                                 for (auto &&nodeId : pendingNodes) {
                                     if (nodeId == pendingNodeId) {
                                         continue;
@@ -1354,11 +1354,16 @@ int main(int argc, char** argv) {
     }
     cerr << "calculated state history" << endl;
 
-    steps = dependencyOptimization(steps);
-    steps = mergeMoves(steps);
-    cerr << "merge moves done. current #turns " << steps.size() << endl;
-    steps = skipAllWaits(steps);
-    cerr << "skip all waits done. current #turns " << steps.size() << endl;
+    // steps = dependencyOptimization(steps);
+    int leastIteration = 4;
+    int currentSteps;
+    do {
+        currentSteps = steps.size();
+        steps = eagerExecution(steps);
+        steps = mergeMoves(steps);
+        steps = skipAllWaits(steps);
+        cerr << "optmization iteration done. current #turns " << steps.size() << endl;
+    } while (steps.size() < currentSteps || leastIteration--);
 
     cerr << "optimization completed. #turns = " << steps.size() << endl;
 
