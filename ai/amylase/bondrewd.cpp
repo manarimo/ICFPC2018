@@ -93,6 +93,14 @@ bool operator<(const position& p1, const position& p2) {
     return make_tuple(p1.x, p1.y, p1.z) < make_tuple(p2.x, p2.y, p2.z);
 }
 
+bool operator<=(const position& p1, const position& p2) {
+    return make_tuple(p1.x, p1.y, p1.z) <= make_tuple(p2.x, p2.y, p2.z);
+}
+
+bool operator>(const position& p1, const position& p2) {
+    return make_tuple(p1.x, p1.y, p1.z) > make_tuple(p2.x, p2.y, p2.z);
+}
+
 istream& operator>>(istream& s, position& p) {
     s >> p.x >> p.y >> p.z;
     return s;
@@ -296,7 +304,7 @@ struct Bot {
             case GFILL:
             case GVOID: {
                 auto p1 = p + command.p1;
-                auto p2 = p + command.p2;
+                auto p2 = p1 + command.p2;
                 vector<position> vcs = region(p1, p2).internals();
                 vcs.push_back(p);
                 return vcs;
@@ -869,7 +877,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         pendingNodes.clear();
 
         auto bots = state.bots;
-        auto volatiles = state.filled;
+        auto volatiles = empty_voxels(state.filled.size());
         for (auto &&bot : bots) {
             if (bot.active) {
                 volatiles[bot.p.x][bot.p.y][bot.p.z] = true;
@@ -879,7 +887,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         map<int, command> commands;
         for (auto &&nodeId : readyNodes) {
             auto node = instructionNodes[nodeId];
-            vector<position> newVolatiles;
+            set<position> newVolatiles;
             set<position> botPositions;
             bool ok = true;
 
@@ -887,13 +895,20 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
                 auto instruction = instructions[instructionId];
                 auto bot = bots[instruction.botId];
                 auto vols = bot.volatileCoordinates(instruction.com);
-                newVolatiles.insert(newVolatiles.end(), vols.begin(), vols.end());
+                newVolatiles.insert(vols.begin(), vols.end());
                 botPositions.insert(bot.p);
                 ok &= commands.find(instruction.botId) == commands.end();
+                if (instruction.com.op == SMOVE || instruction.com.op == LMOVE) {
+                    for (auto &&pathPosition : bot.volatileCoordinates(instruction.com)) {
+                        ok &= !state.filled[pathPosition.x][pathPosition.y][pathPosition.z];
+                    }
+                }
             }
             for (auto &&vol : newVolatiles) {
                 if ((botPositions.find(vol) == botPositions.end()) && volatiles[vol.x][vol.y][vol.z]) {
                     ok = false;
+                }
+                if (not ok) {
                     break;
                 }
             }
