@@ -306,4 +306,4 @@ def hello():
 if __name__ == "__main__":
     message_level = logging.WARN if const.env == "prod" else logging.INFO
     logging.basicConfig(level=message_level)
-    app.run(host="localhost", port=8081, processes=12, threaded=False, debug=True)
+    app.run(host="localhost", port=8081, processes=12, threaded=False)
