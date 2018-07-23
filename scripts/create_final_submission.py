@@ -9,7 +9,7 @@ cursor.execute("SELECT t.problem_id, p.name AS problem_name, tm.trace_id, tm.ene
                "FROM tbltrace_metadata tm "
                "JOIN tbltrace t ON tm.trace_id = t.id "
                "JOIN tblproblem p ON t.problem_id = p.id "
-               "WHERE tm.energy_autoscorer IS NOT NULL AND tm.energy_autoscorer > 0 AND p.is_lightning = FALSE")
+               "WHERE tm.energy_autoscorer IS NOT NULL AND tm.energy_autoscorer > 0 AND p.is_lightning = FALSE AND p.dummy_problem = FALSE")
 best_traces = dict()
 for trace in cursor:
     prob_name = trace['problem_name']
