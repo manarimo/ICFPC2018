@@ -170,6 +170,10 @@ int chebyshev(const position& p) {
     return chebyshev(p.x, p.y, p.z);
 }
 
+bool inMemory(const position& p, const int size) {
+    return 0 <= p.x && p.x < size && 0 <= p.y && p.y < size && 0 <= p.z && p.z < size;
+}
+
 bool near(const position& p1, const position& p2) {
     int md = manhattan(p1 - p2);
     int cd = chebyshev(p1 - p2);
@@ -821,6 +825,33 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
                 case FLIP:
                     break;
             }
+
+            int latestSeedManipulatingInstructionId = -1;
+            int latestMovingInstructionId = -1;
+            for (auto &&instructionId : instructionIds) {
+                switch (instructions[instructionId].com.op) {
+                    case FISSION:
+                    case FUSIONP: { // seed manipulating instruction
+                        if (latestSeedManipulatingInstructionId != -1) {
+                            dependencyConstraints.emplace_back(latestSeedManipulatingInstructionId, instructionId);
+                        }
+                        latestSeedManipulatingInstructionId = instructionId;
+                    }
+                        break;
+                    case SMOVE:
+                    case LMOVE: { // moving instruction
+                        if (latestMovingInstructionId != -1) {
+                            // comment out to skip constraint
+                            dependencyConstraints.emplace_back(latestMovingInstructionId, instructionId);
+                        }
+                        latestMovingInstructionId = instructionId;
+                    }
+                        break;
+                    case WAIT:
+                    default:
+                        break;
+                }
+            }
         }
     }
 
@@ -866,6 +897,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
     // step 2: greedily assign instructions if possible.
     vector<Step> newSteps;
     State state = steps.front().state;
+    const int fieldSize = state.filled.size();
     vector<int> pendingNodes;
     for (int nodeId = 0; nodeId < instructionNodes.size(); ++nodeId) {
         if (instructionNodes[nodeId].referenceCount == 0) {
@@ -877,7 +909,7 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         pendingNodes.clear();
 
         auto bots = state.bots;
-        auto volatiles = empty_voxels(state.filled.size());
+        auto volatiles = empty_voxels(fieldSize);
         for (auto &&bot : bots) {
             if (bot.active) {
                 volatiles[bot.p.x][bot.p.y][bot.p.z] = true;
@@ -885,31 +917,39 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
         }
 
         map<int, command> commands;
+        map<int, vector<int>> violatingInstructionIds;
         for (auto &&nodeId : readyNodes) {
             auto node = instructionNodes[nodeId];
             set<position> newVolatiles;
             set<position> botPositions;
             bool ok = true;
-
             for (auto &&instructionId : node.instructionIds) {
                 auto instruction = instructions[instructionId];
                 auto bot = bots[instruction.botId];
                 auto vols = bot.volatileCoordinates(instruction.com);
+                assert (bot.active);
                 newVolatiles.insert(vols.begin(), vols.end());
                 botPositions.insert(bot.p);
                 ok &= commands.find(instruction.botId) == commands.end();
+
+                bool violation = false;
                 if (instruction.com.op == SMOVE || instruction.com.op == LMOVE) {
                     for (auto &&pathPosition : bot.volatileCoordinates(instruction.com)) {
-                        ok &= !state.filled[pathPosition.x][pathPosition.y][pathPosition.z];
+                        assert (inMemory(pathPosition, fieldSize));
+                        bool alreadyFilled =state.filled[pathPosition.x][pathPosition.y][pathPosition.z];
+                        ok &= !alreadyFilled;
+                        violation |= alreadyFilled;
                     }
                 }
-            }
-            for (auto &&vol : newVolatiles) {
-                if ((botPositions.find(vol) == botPositions.end()) && volatiles[vol.x][vol.y][vol.z]) {
-                    ok = false;
+                for (auto &&vol : vols) {
+                    if ((botPositions.find(vol) == botPositions.end()) && volatiles[vol.x][vol.y][vol.z]) {
+                        ok = false;
+                        violation = true;
+                    }
                 }
-                if (not ok) {
-                    break;
+                if (violation) {
+                    ok = false;
+                    violatingInstructionIds[nodeId].emplace_back(instructionId);
                 }
             }
             if (ok) {
@@ -930,7 +970,108 @@ vector<Step> dependencyOptimization(vector<Step> &steps) {
                 pendingNodes.emplace_back(nodeId);
             }
         }
-        assert (not commands.empty());
+
+        if (commands.empty()) {
+            // assert (false);  // akirame.
+
+            assert (pendingNodes.size() > 0);
+            // race condition? try fixing.
+            set<position> botLocations;
+            for (auto &&bot : bots) {
+                if (bot.active) {
+                    botLocations.insert(bot.p);
+                }
+            }
+            bool racingResolved = false;
+            for (auto &&pendingNodeId : pendingNodes) {
+                auto &pendingNode = instructionNodes[pendingNodeId];
+                auto racingInstructionIds = violatingInstructionIds[pendingNodeId];
+
+                if (not racingInstructionIds.empty()) {
+                    set<position> raceVolatiles;
+                    set<position> racingBotLocations;
+                    for (auto &&racingInstructionId : pendingNode.instructionIds) {
+                        auto racingInstruction = instructions[racingInstructionId];
+                        auto bot = bots[racingInstruction.botId];
+                        auto subVolatiles = bot.volatileCoordinates(racingInstruction.com);
+                        raceVolatiles.insert(subVolatiles.begin(), subVolatiles.end());
+                        racingBotLocations.insert(bot.p);
+                    }
+
+                    auto botIds = state.botIdByPosition();
+                    vector<int> spillNodeIds;
+                    for (auto &&bot : bots) {
+                        if (!bot.active) {
+                            continue;
+                        }
+                        if (racingBotLocations.find(bot.p) != racingBotLocations.end()) {
+                            continue;
+                        }
+                        if (raceVolatiles.find(bot.p) == raceVolatiles.end()) {
+                            continue;
+                        }
+                        auto botId = botIds[bot.p];
+
+                        // kick this bot out of volatile boxels.
+                        // I know this is not perfect but contest finishes soon
+                        bool resolved = false;
+                        for (int delta = 1; (not resolved) && delta <= 15; ++delta) {
+                            for (int direction = 0; (not resolved) && direction < 6; ++direction) {
+                                auto smoveDelta = position(adj_dx[direction] * delta, adj_dy[direction] * delta,
+                                                           adj_dz[direction] * delta);
+                                auto destination = bot.p + smoveDelta;
+                                if (!inMemory(destination, fieldSize)) {
+                                    continue;
+                                }
+                                if (raceVolatiles.find(destination) != raceVolatiles.end()) {
+                                    continue;
+                                }
+                                // resolve!!
+                                int spillInstructionId = instructions.size();
+                                instructions.emplace_back(spillInstructionId, botId, smove(smoveDelta));
+
+                                int spillNodeId = instructionNodes.size();
+                                InstructionNode spillNode(spillNodeId, {spillInstructionId});
+                                spillNode.subsequentIds.emplace_back(pendingNodeId);
+                                pendingNode.referenceCount += 1;
+                                instructionNodes.emplace_back(spillNode);
+
+                                int revertInstructionId = instructions.size();
+                                instructions.emplace_back(revertInstructionId, botId, smove(position(0, 0, 0) - smoveDelta));
+
+                                int revertNodeId = instructionNodes.size();
+                                InstructionNode revertNode(revertNodeId, {revertInstructionId});
+                                vector<int> subsequentIds;
+                                for (auto &&nodeId : pendingNodes) {
+                                    if (nodeId == pendingNodeId) {
+                                        continue;
+                                    }
+                                    subsequentIds.emplace_back(nodeId);
+                                }
+                                for (auto &&subsequentId : subsequentIds) {
+                                    revertNode.subsequentIds.emplace_back(subsequentId);
+                                    instructionNodes[subsequentId].referenceCount += 1;
+                                }
+                                pendingNode.subsequentIds.emplace_back(revertNodeId);
+                                revertNode.referenceCount += 1;
+                                instructionNodes.emplace_back(revertNode);
+
+                                pendingNodes.emplace_back(spillNodeId);
+
+                                spillNodeIds.emplace_back(spillNodeId);
+                                cerr << "spill: " << spillNodeId << ", revert: " << revertNodeId << endl;
+                                resolved = true;
+                            }
+                        }
+                        assert (resolved);
+                    }
+                    racingResolved = true;
+                    pendingNodes = spillNodeIds;
+                    break;
+                }
+            }
+            assert (racingResolved);
+        }
 
         vector<command> allCommands;
         for (auto &&botId : state.activeBotIds()) {
@@ -1191,6 +1332,13 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    // super hack!!!!! yuruse
+    string filePath(argv[1]);
+    string fileName = filePath.substr(filePath.size() - 13);
+    bool disassembly = fileName[1] == 'D';
+
+    cerr << "bondrewd running in " << (disassembly ? "disassembly" : "assembly") << " mode" << endl;
+
     ifstream in(argv[1]);
     auto *model = new Model(in);
     cerr << "Model loaded. size = " << model->size << endl;
@@ -1206,6 +1354,16 @@ int main(int argc, char** argv) {
     cerr << "assembly loaded. #turns = " << turns.size() << endl;
 
     State state(model->size);
+    if (disassembly) {
+        for (int i = 0; i < state.filled.size(); ++i) {
+            for (int j = 0; j < state.filled.size(); ++j) {
+                for (int k = 0; k < state.filled.size(); ++k) {
+                    state.filled[i][j][k] = model->field[i][j][k];
+                }
+            }
+        }
+    }
+
     vector<Step> steps;
     for (int i = 0; i < turns.size(); ++i) {
         steps.emplace_back(state, turns[i]);
@@ -1213,17 +1371,17 @@ int main(int argc, char** argv) {
     }
     cerr << "calculated state history" << endl;
 
-    steps = dependencyOptimization(steps);
-
-    int current_steps;
-    int least_loops = 4;
+    // steps = dependencyOptimization(steps);
+    int leastIteration = 4;
+    int currentSteps;
     do {
-        current_steps = steps.size();
+        currentSteps = steps.size();
         steps = eagerExecution(steps);
         steps = mergeMoves(steps);
         steps = skipAllWaits(steps);
-        cerr << "optimization iteration done. current #turns " << steps.size() << endl;
-    } while (steps.size() < current_steps || least_loops--);
+        cerr << "optmization iteration done. current #turns " << steps.size() << endl;
+    } while (steps.size() < currentSteps || leastIteration--);
+
     cerr << "optimization completed. #turns = " << steps.size() << endl;
 
     vector<MultiCommand> newTurns;

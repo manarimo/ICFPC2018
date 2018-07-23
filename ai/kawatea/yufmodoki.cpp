@@ -751,7 +751,7 @@ int main() {
             break;
         }
         
-        if (i - mutations.back() == 1) mutations.push_back(i);
+        if (i - mutations.back() == 5) mutations.push_back(i);
     }
     
     for (int i = 0; i < mutations.size(); i++) {
@@ -777,7 +777,7 @@ int main() {
     long long best_energy = 1e18;
     vector <command> best_traces;
     
-    for (int B = min(R / 5, MAX_B); B <= min(R, MAX_B); B++) {
+    for (int B = min(R / 4, MAX_B); B <= min(R, MAX_B); B++) {
         vector <vector <rectangle>> all_bots;
         vector <vector <int>> all_voxels;
         
@@ -827,7 +827,7 @@ int main() {
         }
     }
     
-    for (int B = min(R / 5, MAX_B); B <= min(R, MAX_B); B++) {
+    for (int B = min(R / 4, MAX_B); B <= min(R, MAX_B); B++) {
         vector <vector <rectangle>> all_bots;
         vector <vector <int>> all_voxels;
         
@@ -857,7 +857,7 @@ int main() {
             
             while (b > 0) {
                 int parent = dp_z[last][b][1];
-                bots.push_back(rectangle(parent, last - 1, 0, R - 1));
+                bots.push_back(rectangle(0, R - 1, parent, last - 1));
                 voxels.push_back(voxels_z[i][parent][last - 1]);
                 last = parent;
                 b--;
