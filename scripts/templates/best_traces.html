@@ -8,12 +8,6 @@ Nanachi
     <form method="post" action="{{ url_for('best_traces') }}">
         <button>Submit!</button>
     </form>
-    <input type="checkbox" id="autoscorer" {{'checked' if autoscorer else ''}}><label for="autoscorer">オートスコアラーの数値を使う</label>
-    <script>
-        document.getElementById('autoscorer').addEventListener('click', (e) => {
-            window.location = `${window.location.protocol}//${window.location.host}${window.location.pathname}?autoscorer=${e.target.checked}`;
-        });
-    </script>
 </div>
 <div>
     <table class="table" id="trace-list">
@@ -23,6 +17,7 @@ Nanachi
         <th>Trace ID</th>
         <th>Energy</th>
         <th>Ranking best (team)</th>
+        <th>Default</th>
         <th>Author</th>
         <th>Comment</th>
     </tr>
@@ -34,6 +29,7 @@ Nanachi
         <td><a href="{{ url_for('trace_summary', trace_id=trace['trace_id']) }}">{{ trace['trace_id'] }}</a> </td>
         <td>{{ "%.3E"|format(trace['energy_to_use'] or 0) }}</td>
         <td>{{ ("%.3E (%s)" % (trace['ranking_energy'], trace['ranking_name'])) if trace['ranking_name'] or ''}}</td>
+        <td>{{ "%.3E"|format(trace['ref_energy'] or 0) }}</td>
         <td>{{ trace['author'] }}</td>
         <td>{{ trace['comment'] }}</td>
     </tr>

@@ -48,6 +48,7 @@ def pending_traces():
 @app.route("/best_traces", methods=["GET", "POST"])
 def best_traces():
     traces = {}
+    references = {}
     cursor = connection.cursor(dictionary=True)
     lightning = request.args.get('lightning') == 'true'
     autoscorer = request.args.get('autoscorer') == 'true'
@@ -62,18 +63,19 @@ def best_traces():
     def energy_order(energy):
         return energy is None, energy
     for trace in cursor.fetchall():
-        if autoscorer:
-            trace['energy_to_use'] = trace['energy_autoscorer']
-        else:
-            trace['energy_to_use'] = trace['energy']
+        trace['energy_to_use'] = trace['energy_autoscorer']
 
         problem_name = trace["problem_name"]
         if problem_name not in traces:
             traces[problem_name] = trace
         elif energy_order(trace[key]) < energy_order(traces[problem_name][key]):
             traces[problem_name] = trace
+        if trace["author"] == 'icfpc2018':
+            references[problem_name] = trace["energy_autoscorer"]
     cursor.close()
     connection.commit()
+    for k in traces.keys():
+        traces[k]['ref_energy'] = references.get(k)
 
     if request.method == "POST":
         cursor = connection.cursor(dictionary=True)
@@ -304,4 +306,4 @@ def hello():
 if __name__ == "__main__":
     message_level = logging.WARN if const.env == "prod" else logging.INFO
     logging.basicConfig(level=message_level)
-    app.run(host="localhost", port=8081, processes=12, threaded=False)
+    app.run(host="localhost", port=8081, processes=12, threaded=False, debug=True)
