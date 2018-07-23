@@ -18,10 +18,12 @@
 
 
 ## Solvers
-* kawatea/cross
-* kawatea/mutation
-* kawatea/simple_division
-* kawatea/yufmodoki
+* kawatea/simple_division: x 軸か z 軸でブロックの数の最大値を抑えるように空間を分割して、それぞれを独立に下から作っていく。Grounded はチェックして切り替えるが、それを維持するために他と協調したりはしない。
+* kawatea/mutation: simple_division に近い動きをするが、ブロックの状況が大きく変わるような y 座標で全体が揃うのを待って空間の分割の仕方を切り替える。
+* kawatea/yufmodoki: mutation のパラメータを変えて各 y 座標で切り替えるようにしたもの。
+* kawatea/shiva: 全てのブロックを消し去る。GVoid が使える幅でロボット全体で並列に上から穴を開け、順番に GVoid を使ってブロックを消していく。
+* kawatea/cube: 中身が詰まった立方体を構成する。GFill を使って周囲を立方体で埋め、残りを面で埋めていく。
+* kawatea/hand: 簡単かつ特徴的な面を手で解くためのサポートツール。
 * yuusti/大体正の点数を取る (Get Positive Score in Most Cases): 20台で下から貪欲に作成、groundedならharmonicsをlowに切り替える。y軸ごとにFillの必要回数を計算してロボット割り当てるx軸を変える。
 * mkut/splattershotjr: (lightning) 全体では Grounded 状態を維持をして、分割した空間をそれぞれロボットに担当させてほぼ貪欲に構成した。
 * mkut/bamboozler14: (lightning/full) 移動経路を管理して衝突しないように制限なくロボットを飛ばして待ち時間を減らそうとしたが、労災が絶えなかった。
