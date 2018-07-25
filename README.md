@@ -41,6 +41,7 @@ It is also known as "Natural water quality inspector" for its characteristic tha
 * y3: solved problems by hand (assembly)
 * amylase/bondrewd: 後処理器その1。とにかく命令を前に寄せて圧縮。数%から最大10%程度の効果があった。
 * amylase/prushka: 後処理器その2。命令の依存性を解析して矛盾の内容に再構成する。競合の発生を対処できず死亡。
+* osak/combiner: Disassembly問題とAssembly問題をくっつけてReassembly問題を解く。というのを実装するように言われたので実装した。
 
 ## Tools
 * autoscorer：評価器。自動的に採点するからオートスコアラー。Voidの実装がつらかった。
